@@ -260,9 +260,8 @@ body {
 	cursor: pointer;
 	transition: all 0.3s ease;
 	user-select: none;
-	background-size: cover !important;
-	background-position: center !important;
-	background-repeat: no-repeat !important;
+	/* 图案壁纸按原始尺寸平铺，由主题的 background 简写控制 */
+	/* Pattern wallpapers tile at natural size via the theme shorthand */
 	position: relative;
 	overflow: hidden;
 }
@@ -459,17 +458,6 @@ body {
 	background-size: 100% 100%;
 	position: relative;
 	flex: 2.5;
-}
-
-.main::before {
-	content: "";
-	position: absolute;
-	inset: 0;
-	background: url(../assets/wallpaper-1.webp) left top / auto 100% repeat-x;
-	opacity: 0.15;
-	mix-blend-mode: multiply;
-	pointer-events: none;
-	z-index: 0;
 }
 
 .main-header {
