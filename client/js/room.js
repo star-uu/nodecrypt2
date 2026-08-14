@@ -102,19 +102,38 @@ export function joinRoom(userName, roomName, password, modal = null, onResult) {
 	newRd.password = password;
 	roomsData.push(newRd);
 	const idx = roomsData.length - 1;
+	const prevActiveIndex = activeRoomIndex;
 	switchRoom(idx);
 	const sidebarUsername = $id('sidebar-username');
 	if (sidebarUsername) sidebarUsername.textContent = userName;
 	setSidebarAvatar(userName);
 	let closed = false;
+	let secured = false;
+	// Fail the join attempt: remove the room entry, switch back to the
+	// previous room and report the failure so the form can recover.
+	const failJoin = () => {
+		if (closed) return;
+		closed = true;
+		const chatInst = roomsData[idx] ? roomsData[idx].chat : null;
+		roomsData.splice(idx, 1);
+		if (chatInst) {
+			try {
+				// Prevent the failed instance from reconnecting in the background
+				chatInst.credentials = null;
+				chatInst.disconnect()
+			} catch (error) {}
+		}
+		activeRoomIndex = prevActiveIndex;
+		if (prevActiveIndex >= 0) switchRoom(prevActiveIndex);
+		if (onResult) onResult(false)
+	};
 	const callbacks = {
 		onServerClosed: () => {
-			setStatus('Node connection closed');
-			if (onResult && !closed) {
-				closed = true;
-				onResult(false)
-			}
+			if (!secured) failJoin();
 		},		onServerSecured: () => {
+			secured = true;
+			if (closed) return;
+			closed = true;
 			if (modal) modal.remove();
 			else {
 				const loginContainer = $id('login-container');
@@ -124,10 +143,7 @@ export function joinRoom(userName, roomName, password, modal = null, onResult) {
 				// Leave the login page styles behind once the chat opens
 				document.body.classList.remove('login-page');
 			}
-			if (onResult && !closed) {
-				closed = true;
-				onResult(true)
-			}
+			if (onResult) onResult(true)
 			addSystemMsg(t('system.secured', 'connection secured'))
 		},
 		onClientSecured: (user) => handleClientSecured(idx, user),

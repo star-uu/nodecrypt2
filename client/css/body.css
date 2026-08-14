@@ -294,23 +294,59 @@ body.login-page::after {
 .input-group input {
 	width: 100%;
 	box-sizing: border-box;
-	border: 1px solid rgba(255, 255, 255, 0.16);
+	border: 1px solid #d9dee7;
 	border-radius: 12px;
 	padding: 15px 14px;
 	font-size: 1rem;
 	outline: none;
-	background: rgba(255, 255, 255, 0.07);
-	color: #fff;
+	background: #f6f8fa;
+	color: #1f2937;
 	transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .input-group input::placeholder {
-	color: rgba(255, 255, 255, 0.35);
+	color: #9aa4b2;
 }
 
 .input-group input:focus {
 	border-color: #30a8f7;
+	background: #fff;
+	box-shadow: 0 0 0 4px rgba(48, 168, 247, 0.18);
+}
+
+/* Dark glass input styles apply to the login page card only */
+.flip-card .input-group input,
+.login-container .input-group input {
+	border-color: rgba(255, 255, 255, 0.16);
+	background: rgba(255, 255, 255, 0.07);
+	color: #fff;
+}
+
+.flip-card .input-group input::placeholder,
+.login-container .input-group input::placeholder {
+	color: rgba(255, 255, 255, 0.35);
+}
+
+.flip-card .input-group input:focus,
+.login-container .input-group input:focus {
+	border-color: #30a8f7;
 	background: rgba(255, 255, 255, 0.1);
+}
+
+/* Light inputs inside the white join-node modal */
+.login-modal .input-group input {
+	border-color: #d9dee7;
+	background: #f6f8fa;
+	color: #1f2937;
+}
+
+.login-modal .input-group input::placeholder {
+	color: #9aa4b2;
+}
+
+.login-modal .input-group input:focus {
+	border-color: #30a8f7;
+	background: #fff;
 	box-shadow: 0 0 0 4px rgba(48, 168, 247, 0.18);
 }
 

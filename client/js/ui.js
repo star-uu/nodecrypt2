@@ -473,7 +473,17 @@ export function loginFormHandler(modal) {
 		window.joinRoom(userName, roomName, password, modal, function(success) {
 			if (!success && btn) {
 				btn.disabled = false;
-				btn.innerText = 'ENTER'
+				btn.innerText = t('ui.enter', 'ENTER');
+				if (roomInput) {
+					roomInput.style.border = '1.5px solid #e74c3c';
+					warnTip = document.createElement('div');
+					warnTip.style.color = '#e74c3c';
+					warnTip.style.fontSize = '13px';
+					warnTip.style.marginTop = '4px';
+					warnTip.textContent = t('ui.connect_failed', 'Connection failed, please try again');
+					roomInput.parentNode.appendChild(warnTip);
+					roomInput._warnTip = warnTip
+				}
 			}
 		})
 	}
