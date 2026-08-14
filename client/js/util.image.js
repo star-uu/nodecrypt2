@@ -105,7 +105,7 @@ function createImagePreview(dataUrl) {
 
 // Setup image paste functionality
 // 设置图片粘贴功能
-export function setupImagePaste(inputSelector) {
+export function setupImagePaste(inputSelector, onChange = null) {
 	const input = $(inputSelector);
 	if (!input) return;
 
@@ -128,6 +128,7 @@ export function setupImagePaste(inputSelector) {
 			placeholder.style.opacity = '1';
 			input.classList.add('is-empty'); // 确保添加 is-empty
 		}
+		if (typeof onChange === 'function') onChange();
 	}
 
 	// Initial check for placeholder

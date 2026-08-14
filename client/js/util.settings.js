@@ -18,6 +18,7 @@ import { THEMES, getCurrentTheme, applyTheme } from './util.theme.js';
 // Import i18n utilities
 // 导入国际化工具函数
 import { t, setLanguage, getCurrentLanguage, initI18n } from './util.i18n.js';
+let themeDragCleanup = null;
 // Default settings
 // 默认设置
 const DEFAULT_SETTINGS = {
@@ -215,6 +216,10 @@ function setupSettingsPanel() {
 	// 主题选择事件处理
 	const themeSelector = $('#theme-selector', settingsContent);
 	if (themeSelector) {
+		if (themeDragCleanup) {
+			themeDragCleanup();
+			themeDragCleanup = null;
+		}
 		// Custom scrolling functionality
 		// 自定义滚动功能
 		let isDragging = false;
@@ -242,7 +247,7 @@ function setupSettingsPanel() {
 			themeSelector.classList.add('dragging');
 			e.preventDefault(); // Prevent text selection
 		});
-		on(document, 'mousemove', e => {
+		const onDocMouseMove = e => {
 			if (!isDragging) return;
 			e.preventDefault();
 			const x = e.pageX - themeSelector.offsetLeft;
@@ -255,14 +260,20 @@ function setupSettingsPanel() {
 			}
 			
 			themeSelector.scrollLeft = scrollLeft - walk;
-		});
+		};
 
-		on(document, 'mouseup', () => {
+		const onDocMouseUp = () => {
 			if (isDragging) {
 				isDragging = false;
 				themeSelector.classList.remove('dragging');
 			}
-		});
+		};
+		on(document, 'mousemove', onDocMouseMove);
+		on(document, 'mouseup', onDocMouseUp);
+		themeDragCleanup = () => {
+			off(document, 'mousemove', onDocMouseMove);
+			off(document, 'mouseup', onDocMouseUp);
+		};
 		// Touch support for mobile
 		// 移动端触摸支持
 		let touchStartX = 0;
@@ -404,6 +415,10 @@ function closeSettingsPanel() {
 	const sidebarMask = $id('mobile-sidebar-mask'); // mobile-sidebar-mask is used for settings on mobile
 
 	if (!settingsSidebar) return;
+	if (themeDragCleanup) {
+		themeDragCleanup();
+		themeDragCleanup = null;
+	}
 
 	const animationEnded = () => {
 		settingsSidebar.style.display = 'none';

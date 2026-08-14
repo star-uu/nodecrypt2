@@ -27,11 +27,58 @@ import {
 	t
 } from './util.i18n.js';
 
+let newMessageCount = 0;
+
+function getNewMessageIndicator() {
+	return $id('new-message-indicator');
+}
+
+function updateNewMessageIndicator() {
+	const indicator = getNewMessageIndicator();
+	if (!indicator) return;
+	if (newMessageCount > 0) {
+		indicator.textContent = `${t('ui.new_messages', 'New messages')} (${newMessageCount})`;
+		addClass(indicator, 'show');
+	} else {
+		removeClass(indicator, 'show');
+	}
+}
+
+function resetNewMessageIndicator() {
+	newMessageCount = 0;
+	updateNewMessageIndicator();
+}
+
+function scrollChatToBottom(chatArea, force = false) {
+	const threshold = 80;
+	const distance = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight;
+	if (force || distance <= threshold) {
+		chatArea.scrollTop = chatArea.scrollHeight;
+		resetNewMessageIndicator();
+	} else {
+		newMessageCount += 1;
+		updateNewMessageIndicator();
+	}
+}
+
+export function setupNewMessageIndicator() {
+	const indicator = getNewMessageIndicator();
+	if (!indicator) return;
+	on(indicator, 'click', () => {
+		const chatArea = $id('chat-area');
+		if (chatArea) {
+			chatArea.scrollTop = chatArea.scrollHeight;
+			resetNewMessageIndicator();
+		}
+	});
+}
+
 // Render the chat area
 // 渲染聊天区域
 export function renderChatArea() {
 	const chatArea = $id('chat-area');
 	if (!chatArea) return;
+	resetNewMessageIndicator();
 	if (activeRoomIndex < 0 || !roomsData[activeRoomIndex]) {
 		chatArea.innerHTML = '';
 		return
@@ -114,7 +161,7 @@ export function addMsg(text, isHistory = false, msgType = 'text', timestamp = nu
 		class: className
 	}, `<span class="bubble-content">${contentHtml}</span><span class="bubble-meta">${time}</span>`);
 	chatArea.appendChild(div);
-	chatArea.scrollTop = chatArea.scrollHeight
+	scrollChatToBottom(chatArea, true);
 }
 
 // Add a message from another user to the chat area
@@ -201,7 +248,7 @@ export function addOtherMsg(msg, userName = '', avatar = '', isHistory = false, 
 		avatarEl.innerHTML = cleanSvg
 	}
 	chatArea.appendChild(bubbleWrap);
-	chatArea.scrollTop = chatArea.scrollHeight
+	scrollChatToBottom(chatArea, isHistory);
 }
 
 // Add a system message to the chat area
@@ -222,7 +269,7 @@ export function addSystemMsg(text, isHistory = false, timestamp = null) {
 		class: 'bubble system'
 	}, `<span class="bubble-content">${safeText}</span>`);
 	chatArea.appendChild(div);
-	chatArea.scrollTop = chatArea.scrollHeight
+	scrollChatToBottom(chatArea, isHistory);
 }
 
 // Update the style of the chat input area
@@ -263,10 +310,6 @@ export function showImageModal(src) {
 		class: 'img-modal-bg'
 	}, `<div class="img-modal-blur"></div><div class="img-modal-content img-modal-content-overflow"><img src="${src}"class="img-modal-img"/><span class="img-modal-close">&times;</span></div>`);
 	document.body.appendChild(modal);
-	on($('.img-modal-close', modal), 'click', () => modal.remove());
-	on(modal, 'click', (e) => {
-		if (e.target === modal) modal.remove()
-	});
 	const img = $('img', modal);
 	let scale = 1;
 	let isDragging = false;
@@ -326,13 +369,92 @@ export function showImageModal(src) {
 		offsetY = 0;
 		updateTransform()
 	});
+	img.style.touchAction = 'none';
+	let touchStartDistance = 0;
+	let touchStartScale = 1;
+	let touchStartMidX = 0;
+	let touchStartMidY = 0;
+	let touchStartOffsetX = 0;
+	let touchStartOffsetY = 0;
+
+	on(img, 'touchstart', function(ev) {
+		ev.preventDefault();
+		const touches = ev.touches;
+		if (touches.length === 1) {
+			if (scale > 1) {
+				isDragging = true;
+				lastX = touches[0].clientX;
+				lastY = touches[0].clientY;
+				img.style.cursor = 'grabbing';
+				document.body.style.userSelect = 'none';
+			}
+		} else if (touches.length === 2) {
+			isDragging = false;
+			touchStartDistance = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+			touchStartScale = scale;
+			touchStartMidX = (touches[0].clientX + touches[1].clientX) / 2;
+			touchStartMidY = (touches[0].clientY + touches[1].clientY) / 2;
+			touchStartOffsetX = offsetX;
+			touchStartOffsetY = offsetY;
+		}
+	}, { passive: false });
+
+	on(img, 'touchmove', function(ev) {
+		ev.preventDefault();
+		const touches = ev.touches;
+		if (touches.length === 1 && isDragging) {
+			offsetX += touches[0].clientX - lastX;
+			offsetY += touches[0].clientY - lastY;
+			lastX = touches[0].clientX;
+			lastY = touches[0].clientY;
+			updateTransform();
+		} else if (touches.length === 2) {
+			const distance = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+			if (touchStartDistance > 0) {
+				scale = Math.max(0.2, Math.min(5, touchStartScale * (distance / touchStartDistance)));
+			}
+			const midX = (touches[0].clientX + touches[1].clientX) / 2;
+			const midY = (touches[0].clientY + touches[1].clientY) / 2;
+			offsetX = touchStartOffsetX + (midX - touchStartMidX);
+			offsetY = touchStartOffsetY + (midY - touchStartMidY);
+			if (scale === 1) {
+				offsetX = 0;
+				offsetY = 0;
+			}
+			updateTransform();
+		}
+	}, { passive: false });
+
+	on(img, 'touchend', function(ev) {
+		if (ev.touches.length === 0) {
+			isDragging = false;
+			img.style.cursor = scale > 1 ? 'grab' : 'zoom-in';
+			document.body.style.userSelect = '';
+		} else if (ev.touches.length === 1) {
+			lastX = ev.touches[0].clientX;
+			lastY = ev.touches[0].clientY;
+			isDragging = scale > 1;
+			img.style.cursor = isDragging ? 'grabbing' : 'zoom-in';
+		}
+	});
+	const onKeydown = (ev) => {
+		if (ev.key === 'Escape') closeModal();
+	};
 	const cleanup = () => {
 		off(window, 'mousemove', onMouseMove);
 		off(window, 'mouseup', onMouseUp);
+		off(document, 'keydown', onKeydown);
 		document.body.style.userSelect = ''
 	};
-	on(modal, 'remove', cleanup);
-	on($('.img-modal-close', modal), 'click', cleanup);
+	const closeModal = () => {
+		cleanup();
+		modal.remove()
+	};
+	on(document, 'keydown', onKeydown);
+	on($('.img-modal-close', modal), 'click', closeModal);
+	on(modal, 'click', (e) => {
+		if (e.target === modal) closeModal()
+	});
 	updateTransform()
 }
 

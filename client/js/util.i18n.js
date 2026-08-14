@@ -31,6 +31,7 @@ const LANGUAGES = {
 			'ui.my_name': 'My Name',
 			'ui.members': 'Members',
 			'ui.message': 'Message',
+			'ui.new_messages': 'New messages',
 			'ui.private_message_to': 'Private Message to',
 			'ui.me': ' (me)',
 			'ui.anonymous': 'Anonymous',
@@ -107,6 +108,7 @@ const LANGUAGES = {
 			'action.emoji': 'Emoji',
 			'action.settings': 'Settings',
 			'action.back': 'Back',
+			'action.send': 'Send message',
 			'action.copied': 'Copied to clipboard!',
 			'action.share_copied': 'Share link copied!',
 			'action.copy_failed': 'Copy failed, text:',
@@ -187,6 +189,7 @@ const LANGUAGES = {
 			'ui.my_name': '我的名字',
 			'ui.members': '在线成员',
 			'ui.message': '消息',
+			'ui.new_messages': '新消息',
 			'ui.private_message_to': '私信给',
 			'ui.me': '（我）',
 			'ui.anonymous': '匿名用户',
@@ -263,6 +266,7 @@ const LANGUAGES = {
 			'action.emoji': '表情',
 			'action.settings': '设置',
 			'action.back': '返回',
+			'action.send': '发送消息',
 			'action.copied': '已复制到剪贴板！',
 			'action.share_copied': '分享链接已复制！',
 			'action.copy_failed': '复制失败，文本：',
@@ -458,12 +462,27 @@ export function updateStaticTexts() {
 	const attachBtn = document.querySelector('.chat-attach-btn');
 	if (attachBtn) {
 		attachBtn.title = t('file.attach_file', 'Attach file');
+		attachBtn.setAttribute('aria-label', t('file.attach_file', 'Attach file'));
 	}
 	
 	// Update emoji button title
 	const emojiBtn = document.querySelector('.chat-emoji-btn');
 	if (emojiBtn) {
 		emojiBtn.title = t('action.emoji', 'Emoji');
+		emojiBtn.setAttribute('aria-label', t('action.emoji', 'Emoji'));
+	}
+
+	// Update send button label
+	const sendBtn = document.getElementById('send-message-btn');
+	if (sendBtn) {
+		sendBtn.title = t('action.send', 'Send message');
+		sendBtn.setAttribute('aria-label', t('action.send', 'Send message'));
+	}
+
+	// Update message input label
+	const messageInput = document.querySelector('.input-message-input');
+	if (messageInput) {
+		messageInput.setAttribute('aria-label', t('ui.message', 'Message'));
 	}
 		// Update settings button title
 	const settingsBtn = document.getElementById('settings-btn');

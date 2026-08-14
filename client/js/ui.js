@@ -182,104 +182,155 @@ export function renderMainHeader() {
 
 // Setup mobile UI event handlers
 // 设置移动端 UI 事件处理
+let mobileUIInitialized = false;
+
 export function setupMobileUIHandlers() {
-	const sidebar = document.getElementById('sidebar');
-	const rightbar = document.getElementById('rightbar');
-	const settingsSidebar = document.getElementById('settings-sidebar');
-	const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-	const mobileInfoBtn = document.getElementById('mobile-info-btn');
-	const sidebarMask = document.getElementById('mobile-sidebar-mask');
-	const rightbarMask = document.getElementById('mobile-rightbar-mask');
+	const getEls = () => ({
+		sidebar: document.getElementById('sidebar'),
+		rightbar: document.getElementById('rightbar'),
+		settingsSidebar: document.getElementById('settings-sidebar'),
+		mobileMenuBtn: document.getElementById('mobile-menu-btn'),
+		mobileInfoBtn: document.getElementById('mobile-info-btn'),
+		sidebarMask: document.getElementById('mobile-sidebar-mask'),
+		rightbarMask: document.getElementById('mobile-rightbar-mask')
+	});
 
 	function isMobile() {
 		return window.innerWidth <= 768
 	}
 
 	function updateMobileBtnDisplay() {
+		const els = getEls();
 		if (isMobile()) {
-			if (mobileMenuBtn) mobileMenuBtn.style.display = 'flex';
-			if (mobileInfoBtn) mobileInfoBtn.style.display = 'flex'
+			if (els.mobileMenuBtn) els.mobileMenuBtn.style.display = 'flex';
+			if (els.mobileInfoBtn) els.mobileInfoBtn.style.display = 'flex'
 		} else {
-			if (mobileMenuBtn) mobileMenuBtn.style.display = 'none';
-			if (mobileInfoBtn) mobileInfoBtn.style.display = 'none';
-			if (sidebar) sidebar.classList.remove('mobile-open');
-			if (rightbar) rightbar.classList.remove('mobile-open');
-			if (sidebarMask) sidebarMask.classList.remove('active');
-			if (rightbarMask) rightbarMask.classList.remove('active')
+			if (els.mobileMenuBtn) els.mobileMenuBtn.style.display = 'none';
+			if (els.mobileInfoBtn) els.mobileInfoBtn.style.display = 'none';
+			if (els.sidebar) els.sidebar.classList.remove('mobile-open');
+			if (els.rightbar) els.rightbar.classList.remove('mobile-open');
+			if (els.sidebarMask) els.sidebarMask.classList.remove('active');
+			if (els.rightbarMask) els.rightbarMask.classList.remove('active')
 		}
 	}
 	updateMobileBtnDisplay();
-	window.addEventListener('resize', updateMobileBtnDisplay);
-	if (mobileMenuBtn && sidebar && sidebarMask) {
-		mobileMenuBtn.onclick = function(e) {
+
+	const els = getEls();
+	if (els.mobileMenuBtn && els.sidebar && els.sidebarMask) {
+		els.mobileMenuBtn.onclick = function(e) {
 			e.stopPropagation();
-			sidebar.classList.add('mobile-open');
-			sidebarMask.classList.add('active')
-		};		sidebarMask.onclick = function() {
-			// Check if settings sidebar is open
-			if (settingsSidebar && settingsSidebar.classList.contains('mobile-open')) {
+			els.sidebar.classList.add('mobile-open');
+			els.sidebarMask.classList.add('active')
+		};
+		els.sidebarMask.onclick = function() {
+			if (els.settingsSidebar && els.settingsSidebar.classList.contains('mobile-open')) {
 				closeSettingsPanel();
 			} else {
-				sidebar.classList.remove('mobile-open');
-				sidebarMask.classList.remove('active');
+				els.sidebar.classList.remove('mobile-open');
+				els.sidebarMask.classList.remove('active');
 			}
 		}
 	}
-	if (mobileInfoBtn && rightbar && rightbarMask) {
-		mobileInfoBtn.onclick = function(e) {
+	if (els.mobileInfoBtn && els.rightbar && els.rightbarMask) {
+		els.mobileInfoBtn.onclick = function(e) {
 			e.stopPropagation();
-			rightbar.classList.add('mobile-open');
-			rightbarMask.classList.add('active')
+			els.rightbar.classList.add('mobile-open');
+			els.rightbarMask.classList.add('active')
 		};
-		rightbarMask.onclick = function() {
-			rightbar.classList.remove('mobile-open');
-			rightbarMask.classList.remove('active')
+		els.rightbarMask.onclick = function() {
+			els.rightbar.classList.remove('mobile-open');
+			els.rightbarMask.classList.remove('active')
 		}
-	}	// Consolidated click event listener for closing sidebars
-	document.addEventListener('click', function(ev) {
-		const settingsBtn = $id('settings-btn');
-		const isSettingsButtonClick = settingsBtn && settingsBtn.contains(ev.target);
-		const isSettingsBackButtonClick = $id('settings-back-btn') && $id('settings-back-btn').contains(ev.target);
+	}
 
-		// Close settings sidebar if open and click is outside (and not on the open button or back button)
-		if (settingsSidebar && (settingsSidebar.classList.contains('open') || settingsSidebar.classList.contains('mobile-open'))) {
-			if (!settingsSidebar.contains(ev.target) && !isSettingsButtonClick && !isSettingsBackButtonClick) {
-				closeSettingsPanel();
-			}
-		}
+	if (!mobileUIInitialized) {
+		window.addEventListener('resize', updateMobileBtnDisplay);
 
-		if (isMobile()) {
-			// Mobile-specific logic
-			if (sidebar && sidebar.classList.contains('mobile-open')) {
-				if (!sidebar.contains(ev.target) && ev.target !== mobileMenuBtn) {
-					sidebar.classList.remove('mobile-open');
-					if (sidebarMask) sidebarMask.classList.remove('active');
-				}
+		let touchStartX = 0;
+		let touchStartY = 0;
+		let edgeSwipeTarget = null;
+
+		document.addEventListener('touchstart', (ev) => {
+			const touch = ev.touches[0];
+			if (!touch) return;
+			touchStartX = touch.clientX;
+			touchStartY = touch.clientY;
+			edgeSwipeTarget = null;
+		}, { passive: true });
+
+		document.addEventListener('touchmove', (ev) => {
+			const touch = ev.touches[0];
+			if (!touch) return;
+			const dx = touch.clientX - touchStartX;
+			const dy = touch.clientY - touchStartY;
+			if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return;
+
+			const els = getEls();
+			if (touchStartX <= 32 && dx > 0 && els.sidebar && !els.sidebar.classList.contains('mobile-open')) {
+				ev.preventDefault();
+				edgeSwipeTarget = 'sidebar';
+			} else if (touchStartX >= window.innerWidth - 32 && dx < 0 && els.rightbar && !els.rightbar.classList.contains('mobile-open')) {
+				ev.preventDefault();
+				edgeSwipeTarget = 'rightbar';
 			}
-			if (settingsSidebar && settingsSidebar.classList.contains('mobile-open')) {
-				// 检查点击目标是否为设置按钮本身
-				const isSettingsButton = settingsBtn && settingsBtn.contains(ev.target);
-				if (!settingsSidebar.contains(ev.target) && !isSettingsButton) {
+		}, { passive: false });
+
+		document.addEventListener('touchend', () => {
+			const els = getEls();
+			if (edgeSwipeTarget === 'sidebar' && els.sidebar) {
+				els.sidebar.classList.add('mobile-open');
+				if (els.sidebarMask) els.sidebarMask.classList.add('active');
+			} else if (edgeSwipeTarget === 'rightbar' && els.rightbar) {
+				els.rightbar.classList.add('mobile-open');
+				if (els.rightbarMask) els.rightbarMask.classList.add('active');
+			}
+			edgeSwipeTarget = null;
+		});
+
+		document.addEventListener('click', function(ev) {
+			const current = getEls();
+			const settingsBtn = $id('settings-btn');
+			const isSettingsButtonClick = settingsBtn && settingsBtn.contains(ev.target);
+			const settingsBackBtn = $id('settings-back-btn');
+			const isSettingsBackButtonClick = settingsBackBtn && settingsBackBtn.contains(ev.target);
+
+			if (current.settingsSidebar && (current.settingsSidebar.classList.contains('open') || current.settingsSidebar.classList.contains('mobile-open'))) {
+				if (!current.settingsSidebar.contains(ev.target) && !isSettingsButtonClick && !isSettingsBackButtonClick) {
 					closeSettingsPanel();
 				}
 			}
-			if (rightbar && rightbar.classList.contains('mobile-open')) {
-				if (!rightbar.contains(ev.target) && ev.target !== mobileInfoBtn) {
-					rightbar.classList.remove('mobile-open');
-					if (rightbarMask) rightbarMask.classList.remove('active');
+
+			if (isMobile()) {
+				if (current.sidebar && current.sidebar.classList.contains('mobile-open')) {
+					if (!current.sidebar.contains(ev.target) && ev.target !== current.mobileMenuBtn) {
+						current.sidebar.classList.remove('mobile-open');
+						if (current.sidebarMask) current.sidebarMask.classList.remove('active');
+					}
+				}
+				if (current.settingsSidebar && current.settingsSidebar.classList.contains('mobile-open')) {
+					const isSettingsButton = settingsBtn && settingsBtn.contains(ev.target);
+					if (!current.settingsSidebar.contains(ev.target) && !isSettingsButton) {
+						closeSettingsPanel();
+					}
+				}
+				if (current.rightbar && current.rightbar.classList.contains('mobile-open')) {
+					if (!current.rightbar.contains(ev.target) && ev.target !== current.mobileInfoBtn) {
+						current.rightbar.classList.remove('mobile-open');
+						if (current.rightbarMask) current.rightbarMask.classList.remove('active');
+					}
+				}
+			} else {
+				if (current.settingsSidebar && current.settingsSidebar.classList.contains('open')) {
+					const isSettingsButton = settingsBtn && settingsBtn.contains(ev.target);
+					if (!current.settingsSidebar.contains(ev.target) && !isSettingsButton) {
+						closeSettingsPanel();
+					}
 				}
 			}
-		} else {
-			// Desktop-specific logic
-			// 如果设置侧边栏打开，并且点击位置在侧边栏外部且不是设置按钮本身
-			if (settingsSidebar && settingsSidebar.classList.contains('open')) {
-				const isSettingsButton = settingsBtn && settingsBtn.contains(ev.target);
-				if (!settingsSidebar.contains(ev.target) && !isSettingsButton) {
-					closeSettingsPanel();
-				}
-			}
-		}
-	})
+		});
+
+		mobileUIInitialized = true;
+	}
 }
 
 // Render the user/member list
@@ -345,14 +396,13 @@ export function createUserItem(user, isMe) {
 
 // Setup the 'more' button menu
 // 设置"更多"按钮菜单
+let moreMenuDocumentBound = false;
+
 export function setupMoreBtnMenu() {
 	const btn = $id('more-btn');
 	const menu = $id('more-menu');
 	if (!btn || !menu) return;
-	let animating = false;
 
-	// Open the menu
-	// 打开菜单
 	function openMenu() {
 		menu.style.display = 'block';
 		menu.classList.remove('close');
@@ -361,16 +411,11 @@ export function setupMoreBtnMenu() {
 		menu.classList.add('open');
 	}
 
-	// Close the menu
-	// 关闭菜单
 	function closeMenu() {
-		if (animating) return;
-		animating = true;
 		menu.classList.remove('open');
 		menu.classList.add('close');
 		setTimeout(() => {
 			if (menu.classList.contains('close')) menu.style.display = 'none';
-			animating = false;
 		}, 300);
 	}
 
@@ -390,19 +435,21 @@ export function setupMoreBtnMenu() {
 		}
 	};
 
-	document.addEventListener('click', function hideMenu(ev) {
-		if (!menu.contains(ev.target) && ev.target !== btn) {
-			closeMenu();
-		}
-	});
-
-	menu.addEventListener('animationend', function(e) {
-		animating = false;
-	});
-
-	menu.addEventListener('transitionend', function(e) {
-		animating = false;
-	});
+	if (!moreMenuDocumentBound) {
+		document.addEventListener('click', function(ev) {
+			const currentBtn = $id('more-btn');
+			const currentMenu = $id('more-menu');
+			if (!currentMenu) return;
+			if (!currentMenu.contains(ev.target) && ev.target !== currentBtn) {
+				currentMenu.classList.remove('open');
+				currentMenu.classList.add('close');
+				setTimeout(() => {
+					if (currentMenu.classList.contains('close')) currentMenu.style.display = 'none';
+				}, 300);
+			}
+		});
+		moreMenuDocumentBound = true;
+	}
 }
 
 // Prevent space and special character input
@@ -642,6 +689,7 @@ export function initFlipCard() {
 	const flipCard = document.getElementById('flip-card');
 	const helpBtn = document.getElementById('help-btn');
 	const backBtn = document.getElementById('back-btn');
+	const helpBackdrop = document.getElementById('help-backdrop');
 	
 	if (!flipCard || !helpBtn || !backBtn) return;
 	
@@ -656,8 +704,10 @@ export function initFlipCard() {
 		isFlipped = !isFlipped;
 		if (isFlipped) {
 			flipCardInner.classList.add('flipped');
+			if (helpBackdrop) helpBackdrop.classList.add('active');
 		} else {
 			flipCardInner.classList.remove('flipped');
+			if (helpBackdrop) helpBackdrop.classList.remove('active');
 		}
 	}
 	
@@ -674,4 +724,10 @@ export function initFlipCard() {
 		e.stopPropagation();
 		toggleFlip();
 	});
+
+	if (helpBackdrop) {
+		helpBackdrop.addEventListener('click', () => {
+			if (isFlipped) toggleFlip();
+		});
+	}
 }

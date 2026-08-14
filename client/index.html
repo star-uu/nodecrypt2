@@ -8,6 +8,7 @@
 	<link rel="stylesheet" href="css/phone.css">
 	<link rel="stylesheet" href="css/form-animation.css">
 	<link rel="stylesheet" href="css/webrtc.css">
+	<link rel="stylesheet" href="css/polish.css">
 	<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">	<meta name="description" content="NodeCrypt - True end-to-end encrypted chat system, no database, all messages encrypted locally, server only relays encrypted data, supports Cloudflare Workers, Docker, self-hosting and local development.">
 	<meta name="keywords" content="end-to-end encryption, security, chat, WebSocket, Cloudflare Workers, JavaScript, E2EE, anonymous communication, AES, ECDH, RSA, ChaCha20, security, open source, NodeCrypt, shuaiplus">
 	<meta name="author" content="shuaiplus">
@@ -33,6 +34,7 @@
 	</style>
 </head>
 <body class="preload">	<div class="login-container" id="login-container">
+		<div class="help-backdrop" id="help-backdrop"></div>
 		<!-- 翻转卡片容器 -->
 		<div class="flip-card" id="flip-card">
 			<div class="flip-card-inner">
@@ -170,6 +172,7 @@
 		<div class="main">
 			<div class="main-header" id="main-header"> </div>
 			<div class="chat-area" id="chat-area"> </div>
+			<button class="new-message-indicator" id="new-message-indicator" type="button" aria-label="Scroll to new messages"></button>
 			<div class="chat-input-area">
 				<div class="rows-wrapper chat-input-wrapper chat-input-main-wrapper chat-rows-wrapper">					<div class="new-message-wrapper rows-wrapper-row" data-offset="commands"> <button class="chat-emoji-btn" type="button" title=""> <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 								<g id="SVGRepo_bgCarrier" stroke-width="0"></g>
@@ -180,8 +183,7 @@
 										fill="#808080"></path>
 								</g>
 							</svg> </button>						<div class="input-message-container">
-							<div class="input-message-input is-empty scrollable scrollable-y no-scrollbar input-message-input-init" contenteditable="true" dir="auto" tabindex="-1"></div> <span class="input-field-placeholder i18n is-empty"></span>
-							<div contenteditable="true" tabindex="-1" class="input-message-input is-empty scrollable scrollable-y no-scrollbar input-field-input-fake"></div> 
+							<div class="input-message-input is-empty scrollable scrollable-y no-scrollbar input-message-input-init" contenteditable="true" dir="auto" role="textbox" aria-multiline="true" aria-label="Message" tabindex="0"></div> <span class="input-field-placeholder i18n is-empty"></span>
 						</div> <button class="chat-attach-btn chat-attach-btn-abs" type="button" title=""> <svg width="30px" height="30px"
 									viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 									<g id="SVGRepo_bgCarrier" stroke-width="0"></g>
@@ -191,7 +193,7 @@
 											d="M10.6875 3.75C8.96439 3.75 7.5 5.23565 7.5 7.15385L7.5 15.4615C7.5 18.1444 9.55201 20.25 12 20.25C14.448 20.25 16.5 18.1444 16.5 15.4615V7.15385H18V15.4615C18 18.8963 15.351 21.75 12 21.75C8.649 21.75 6 18.8963 6 15.4615L6 7.15385C6 4.48383 8.06137 2.25 10.6875 2.25C13.3136 2.25 15.375 4.48383 15.375 7.15385V15.4615C15.375 17.3669 13.9013 18.9808 12 18.9808C10.0987 18.9808 8.625 17.3669 8.625 15.4615V7.15385H10.125V15.4615C10.125 16.615 11.0018 17.4808 12 17.4808C12.9982 17.4808 13.875 16.615 13.875 15.4615V7.15385C13.875 5.23565 12.4106 3.75 10.6875 3.75Z"
 											fill="#808080"></path>
 									</g>
-								</svg></button> <div class="send-message-btn">
+								</svg></button> <button type="button" class="send-message-btn" id="send-message-btn" aria-label="Send message" title="Send message">
   <span class="text">
     <svg
       viewBox="0 0 16 16"
@@ -205,7 +207,7 @@
       ></path>
     </svg>
   </span>
-</div>
+</button>
 					<input type="file" multiple class="input-hidden">
 					</div>
 				</div>

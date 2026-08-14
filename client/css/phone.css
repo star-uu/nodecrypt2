@@ -118,7 +118,7 @@
 
 	.mobile-sidebar-mask,
 	.mobile-rightbar-mask {
-		display: none;
+		display: block;
 		position: fixed;
 		left: 0;
 		top: 0;
@@ -126,11 +126,15 @@
 		bottom: 0;
 		background: rgba(0, 0, 0, 0.18);
 		z-index: 999;
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 0.25s ease;
 	}
 
 	.mobile-sidebar-mask.active,
 	.mobile-rightbar-mask.active {
-		display: block;
+		opacity: 1;
+		pointer-events: auto;
 	}
 
 	.mobile-menu-btn,
@@ -153,13 +157,11 @@
 	.mobile-info-btn:active {
 		background: #e0e0e0;
 		transform: scale(0.93);
-	}	.settings-panel-card {
-		left: 2vw !important;
 	}
-	
+
 	.flip-card {
-	width: 95%;
-}
+		width: 95%;
+	}
 }
 
 .member.private-chat-active {

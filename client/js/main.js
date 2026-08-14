@@ -63,14 +63,14 @@ import {
 	setupImagePreview,    // 设置图片预览功能 / Setup image preview
 	showImageModal,       // Show image modal
 	setupInputPlaceholder, // 设置输入框的占位提示 / Setup placeholder for input box
-	autoGrowInput         // 自动调整输入框高度 / Auto adjust input height
+	autoGrowInput,         // 自动调整输入框高度 / Auto adjust input height
+	setupNewMessageIndicator // 设置新消息提示 / Setup new message indicator
 } from './chat.js';
 
 // 从 ui.js 中导入 UI 界面相关的功能
 // Import user interface functions from ui.js
 import {	renderUserList,       // 渲染用户列表 / Render user list
 	renderMainHeader,     // 渲染主标题栏 / Render main header
-	setupMoreBtnMenu,     // 设置更多按钮的下拉菜单 / Setup "more" button menu
 	preventSpaceInput,    // 防止输入空格 / Prevent space input in form fields
 	loginFormHandler,     // 登录表单提交处理器 / Login form handler
 	openLoginModal,       // 打开登录窗口 / Open login modal
@@ -152,8 +152,8 @@ window.addEventListener('DOMContentLoaded', () => {
 	// 初始化辅助功能和界面设置
 	// Initialize autofill, input placeholders, and menus
 	autofillRoomPwd();	setupInputPlaceholder();
-	setupMoreBtnMenu();
 	setupImagePreview();	setupEmojiPicker();
+	setupNewMessageIndicator();
 	// 由于我们已经在DOM加载前预先初始化了语言设置，这里不需要重复初始化
 	// initSettings();
 	// updateStaticTexts(); // 在初始化设置后更新静态文本 / Update static texts after initializing settings
@@ -186,23 +186,39 @@ window.addEventListener('DOMContentLoaded', () => {
 	// 点击其他地方时关闭设置面板 (已移除，因为现在使用侧边栏形式)
 	// Close settings panel when clicking outside (removed since we now use sidebar format)
 	const input = document.querySelector('.input-message-input'); // 消息输入框 / Message input box
+	const sendButton = $id('send-message-btn'); // 发送按钮 / Send button
+
+	function updateSendButtonState() {
+		if (!sendButton) return;
+		const text = input ? input.innerText.trim() : '';
+		const imageCount = input ? input.parentNode.querySelectorAll('.input-image-preview').length : 0;
+		const hasContent = text.length > 0 || imageCount > 0;
+		sendButton.disabled = !hasContent;
+		sendButton.classList.toggle('is-disabled', !hasContent);
+		sendButton.setAttribute('aria-disabled', hasContent ? 'false' : 'true');
+	}
 	
 	// 设置图片粘贴功能
 	// Setup image paste functionality
-	const imagePasteHandler = setupImagePaste('.input-message-input');
+	const imagePasteHandler = setupImagePaste('.input-message-input', updateSendButtonState);
+	updateSendButtonState();
 	
 	if (input) {
 		input.focus(); // 自动聚焦 / Auto focus
 		input.addEventListener('keydown', (e) => {
 			// 按下 Enter 键并且不按 Shift，表示发送消息
 			// Pressing Enter (without Shift) sends the message
-			if (e.key === 'Enter' && !e.shiftKey) {
+			if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
 				e.preventDefault();
 				sendMessage();
 			}
 		});
 	}
 	
+	if (sendButton) {
+		sendButton.addEventListener('click', sendMessage);
+	}
+
 	// 发送消息的统一函数
 	// Unified function to send messages
 	function sendMessage() {
@@ -289,13 +305,6 @@ window.addEventListener('DOMContentLoaded', () => {
 			}
 			autoGrowInput(); // 调整输入框高度
 		}
-	}
-	
-	// 为发送按钮添加点击事件
-	// Add click event for send button
-	const sendButton = document.querySelector('.send-message-btn');
-	if (sendButton) {
-		sendButton.addEventListener('click', sendMessage);
 	}
 	
 	// 设置发送文件功能
