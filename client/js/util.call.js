@@ -40,6 +40,9 @@ class CallManager {
 		this.durationTimer = null;
 		this.startTime = 0;
 		this.uiReady = false;
+		this.callMode = 'voice'; // voice | video
+		this.localVideoEnabled = true;
+		this.remoteVideoEnabled = true;
 	}
 
 	// Inject runtime helpers (roomsData / activeRoomIndex accessors)
@@ -104,9 +107,51 @@ class CallManager {
 
 	// -- public API ---------------------------------------------------------
 
+	// Get user media; on video calls, fall back to audio-only when the
+	// camera is unavailable so the call still goes through.
+	// 获取媒体流；视频通话时摄像头不可用则降级为纯语音，保证通话仍可接通
+	async getMediaStream(mode) {
+		const constraints = {
+			audio: { echoCancellation: true, noiseSuppression: true },
+			video: mode === 'video' ? {
+				width: { ideal: 1280 },
+				height: { ideal: 720 },
+				facingMode: 'user'
+			} : false
+		};
+		try {
+			const stream = await navigator.mediaDevices.getUserMedia(constraints);
+			return { stream, videoAvailable: mode === 'video' };
+		} catch (error) {
+			if (mode === 'video') {
+				try {
+					const audioOnly = await navigator.mediaDevices.getUserMedia({
+						audio: { echoCancellation: true, noiseSuppression: true },
+						video: false
+					});
+					this.systemMsg(t('call.video_degraded', 'Camera unavailable — switched to voice-only call.'));
+					return { stream: audioOnly, videoAvailable: false };
+				} catch (audioError) {
+					throw error;
+				}
+			}
+			throw error;
+		}
+	}
+
 	// Start a voice call to a member
 	// 向某个成员发起语音通话
-	async startCall(targetId, targetName) {
+	startCall(targetId, targetName) {
+		return this.startCallInternal(targetId, targetName, 'voice');
+	}
+
+	// Start a video call to a member
+	// 向某个成员发起视频通话
+	startVideoCall(targetId, targetName) {
+		return this.startCallInternal(targetId, targetName, 'video');
+	}
+
+	async startCallInternal(targetId, targetName, mode) {
 		if (this.state !== 'idle') {
 			this.systemMsg(t('call.already_in_call', 'You are already in a call.'));
 			return false;
@@ -127,15 +172,16 @@ class CallManager {
 			return false;
 		}
 
-		let stream;
+		this.callMode = mode;
+		let media;
 		try {
-			stream = await navigator.mediaDevices.getUserMedia({
-				audio: { echoCancellation: true, noiseSuppression: true },
-				video: false
-			});
+			media = await this.getMediaStream(mode);
 		} catch (error) {
 			console.error('getUserMedia failed', error);
-			this.systemMsg(t('call.mic_error', 'Unable to access microphone. Please check browser permissions and devices.'));
+			this.systemMsg(mode === 'video'
+				? t('call.camera_error', 'Unable to access camera. Please check browser permissions and devices.')
+				: t('call.mic_error', 'Unable to access microphone. Please check browser permissions and devices.'));
+			this.callMode = 'voice';
 			return false;
 		}
 
@@ -143,13 +189,15 @@ class CallManager {
 		this.targetClientId = targetId;
 		this.targetName = targetName || targetId;
 		this.callId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-		this.localStream = stream;
+		this.localStream = media.stream;
+		this.localVideoEnabled = media.videoAvailable;
+		this.remoteVideoEnabled = true;
 		this.isMuted = false;
 		this.speakerOn = false;
 		this.state = 'outgoing';
 
 		this.peer = this.createPeerConnection();
-		stream.getTracks().forEach(track => this.peer.addTrack(track, stream));
+		this.localStream.getTracks().forEach(track => this.peer.addTrack(track, this.localStream));
 
 		try {
 			const offer = await this.peer.createOffer();
@@ -165,7 +213,9 @@ class CallManager {
 			action: 'offer',
 			callId: this.callId,
 			sdp: this.peer.localDescription,
-			callerName: this.getMyName(roomIdx)
+			callerName: this.getMyName(roomIdx),
+			mode: mode,
+			videoAvailable: media.videoAvailable
 		});
 		if (!sent) {
 			this.hangup(true);
@@ -193,12 +243,25 @@ class CallManager {
 			case 'ice':
 				this.handleIce(fromClientId, data);
 				break;
+			case 'camera':
+				this.handleCameraToggle(fromClientId, data);
+				break;
 			case 'end':
 				this.handleRemoteEnd(fromClientId, data);
 				break;
 			default:
 				break;
 		}
+	}
+
+	// Remote toggled their camera
+	// 对方切换了摄像头
+	handleCameraToggle(fromClientId, data) {
+		if (this.state === 'idle' || fromClientId !== this.targetClientId || data.callId !== this.callId) {
+			return;
+		}
+		this.remoteVideoEnabled = data.enabled !== false;
+		this.updateVideoUI();
 	}
 
 	// Handle incoming offer
@@ -224,6 +287,8 @@ class CallManager {
 		this.roomIdx = roomIdx;
 		this.targetClientId = fromClientId;
 		this.callId = data.callId;
+		this.callMode = data.mode === 'video' ? 'video' : 'voice';
+		this.remoteVideoEnabled = data.videoAvailable !== false;
 		this.pendingSdp = data.sdp;
 		this.pendingCandidates = [];
 		const user = chat.channel[fromClientId];
@@ -236,7 +301,10 @@ class CallManager {
 		const room = this.getRoomAt(roomIdx);
 		if (window.notifyMessage) {
 			try {
-				window.notifyMessage(room ? room.roomName : '', 'call', t('call.incoming_call', 'Incoming voice call'), this.targetName);
+				const notice = this.callMode === 'video'
+					? t('call.video_call', 'Video Call')
+					: t('call.voice_call', 'Voice Call');
+				window.notifyMessage(room ? room.roomName : '', 'call', `${t('call.incoming_call', 'Incoming voice call')}（${notice}）`, this.targetName);
 			} catch (error) {
 				console.error('call notification failed', error);
 			}
@@ -270,15 +338,14 @@ class CallManager {
 			this.timeoutTimer = null;
 		}
 
-		let stream;
+		let media;
 		try {
-			stream = await navigator.mediaDevices.getUserMedia({
-				audio: { echoCancellation: true, noiseSuppression: true },
-				video: false
-			});
+			media = await this.getMediaStream(this.callMode);
 		} catch (error) {
 			console.error('getUserMedia failed', error);
-			this.systemMsg(t('call.mic_error', 'Unable to access microphone. Please check browser permissions and devices.'));
+			this.systemMsg(this.callMode === 'video'
+				? t('call.camera_error', 'Unable to access camera. Please check browser permissions and devices.')
+				: t('call.mic_error', 'Unable to access microphone. Please check browser permissions and devices.'));
 			this.sendSignal(targetId, {
 				action: 'end',
 				callId: this.callId,
@@ -288,9 +355,10 @@ class CallManager {
 			return;
 		}
 
-		this.localStream = stream;
+		this.localStream = media.stream;
+		this.localVideoEnabled = media.videoAvailable;
 		this.peer = this.createPeerConnection();
-		stream.getTracks().forEach(track => this.peer.addTrack(track, stream));
+		this.localStream.getTracks().forEach(track => this.peer.addTrack(track, this.localStream));
 
 		try {
 			await this.peer.setRemoteDescription(new RTCSessionDescription(this.pendingSdp));
@@ -303,7 +371,8 @@ class CallManager {
 				action: 'answer',
 				callId: this.callId,
 				accepted: true,
-				sdp: this.peer.localDescription
+				sdp: this.peer.localDescription,
+				videoAvailable: media.videoAvailable
 			});
 		} catch (error) {
 			console.error('acceptIncoming failed', error);
@@ -355,6 +424,7 @@ class CallManager {
 
 		try {
 			await this.peer.setRemoteDescription(new RTCSessionDescription(data.sdp));
+			this.remoteVideoEnabled = data.videoAvailable !== false;
 			this.state = 'in-call';
 			this.showUI('active');
 		} catch (error) {
@@ -473,6 +543,73 @@ class CallManager {
 		this.updateSpeakerBtn();
 	}
 
+	// Toggle the local camera and notify the remote side
+	// 开关本地摄像头并通知对方
+	toggleCamera() {
+		const track = this.localStream && this.localStream.getVideoTracks()[0];
+		if (!track) return;
+		this.localVideoEnabled = !this.localVideoEnabled;
+		track.enabled = this.localVideoEnabled;
+		this.sendSignal(this.targetClientId, {
+			action: 'camera',
+			callId: this.callId,
+			enabled: this.localVideoEnabled
+		});
+		this.updateVideoUI();
+	}
+
+	// Refresh the video panel (remote picture, local PiP, camera button)
+	// 刷新视频面板（远端画面、本地小窗、摄像头按钮）
+	updateVideoUI() {
+		const overlay = $id('call-overlay');
+		const area = $id('call-video-area');
+		const remoteV = $id('call-remote-video');
+		const localV = $id('call-local-video');
+		const avatar = $id('call-avatar');
+		const isVideo = this.callMode === 'video';
+		const showRemote = isVideo && this.remoteVideoEnabled && !!(remoteV && remoteV.srcObject);
+		const showLocal = isVideo && this.localVideoEnabled && !!(this.localStream && this.localStream.getVideoTracks().length);
+		if (overlay) {
+			overlay.classList.toggle('mode-video', isVideo && (showRemote || showLocal));
+		}
+		if (area) area.style.display = showRemote ? 'block' : 'none';
+		if (avatar) avatar.style.display = showRemote ? 'none' : '';
+		if (localV) {
+			if (showLocal && this.localStream && localV.srcObject !== this.localStream) {
+				localV.srcObject = this.localStream;
+				localV.play().catch(() => {});
+			}
+			localV.style.display = showLocal ? 'block' : 'none';
+		}
+		this.updateCameraBtn();
+	}
+
+	updateCameraBtn() {
+		const btn = $id('call-camera-btn');
+		if (!btn) return;
+		const track = this.localStream && this.localStream.getVideoTracks()[0];
+		if (!track) {
+			btn.style.display = 'none';
+			return;
+		}
+		if (this.localVideoEnabled) {
+			removeClass(btn, 'active');
+			btn.title = t('call.camera_off', 'Camera off');
+			btn.innerHTML = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M23 7l-7 5 7 5V7z"></path>
+				<rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+			</svg>`;
+		} else {
+			addClass(btn, 'active');
+			btn.title = t('call.camera_on', 'Camera on');
+			btn.innerHTML = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<line x1="1" y1="1" x2="23" y2="23"></line>
+				<path d="M15.5 8.5V5a3.5 3.5 0 0 0-5.94-2.06M8.5 8.5v7a3.5 3.5 0 0 0 6.94 1.06M23 7l-7 5 7 5V7z"></path>
+				<rect x="1" y="5" width="15" height="14" rx="2" ry="2" opacity="0"></rect>
+			</svg>`;
+		}
+	}
+
 	// -- WebRTC internals ----------------------------------------------------
 
 	createPeerConnection() {
@@ -490,10 +627,21 @@ class CallManager {
 		};
 
 		pc.ontrack = (event) => {
-			const audio = $id('call-remote-audio');
-			if (audio && event.streams && event.streams[0]) {
-				audio.srcObject = event.streams[0];
-				audio.play().catch(() => {});
+			const streams = event.streams && event.streams[0] ? event.streams : [new MediaStream([event.track])];
+			if (event.track.kind === 'video') {
+				const video = $id('call-remote-video');
+				if (video) {
+					video.srcObject = streams[0];
+					video.play().catch(() => {});
+				}
+				this.remoteVideoEnabled = true;
+				this.updateVideoUI();
+			} else {
+				const audio = $id('call-remote-audio');
+				if (audio) {
+					audio.srcObject = streams[0];
+					audio.play().catch(() => {});
+				}
 			}
 		};
 
@@ -527,6 +675,7 @@ class CallManager {
 		if (this.state === 'idle' || this.durationTimer) return;
 		this.state = 'in-call';
 		this.startTime = Date.now();
+		this.updateVideoUI();
 		const statusEl = $id('call-status');
 		const update = () => {
 			const seconds = Math.floor((Date.now() - this.startTime) / 1000);
@@ -580,6 +729,17 @@ class CallManager {
 		if (audio) {
 			audio.srcObject = null;
 		}
+		const remoteVideo = $id('call-remote-video');
+		if (remoteVideo) {
+			remoteVideo.srcObject = null;
+		}
+		const localVideo = $id('call-local-video');
+		if (localVideo) {
+			localVideo.srcObject = null;
+			localVideo.style.display = 'none';
+		}
+		const overlay = $id('call-overlay');
+		if (overlay) overlay.classList.remove('mode-video');
 		this.remoteAudio = null;
 		this.pendingSdp = null;
 		this.pendingCandidates = [];
@@ -590,6 +750,9 @@ class CallManager {
 		this.roomIdx = -1;
 		this.isMuted = false;
 		this.speakerOn = false;
+		this.callMode = 'voice';
+		this.localVideoEnabled = true;
+		this.remoteVideoEnabled = true;
 		this.hideUI();
 	}
 
@@ -604,6 +767,10 @@ class CallManager {
 		overlay.className = 'call-overlay hidden';
 		overlay.innerHTML = `
 			<div class="call-card">
+				<div class="call-video-area" id="call-video-area" style="display:none;">
+					<video id="call-remote-video" autoplay playsinline></video>
+					<video id="call-local-video" autoplay playsinline muted></video>
+				</div>
 				<div class="call-avatar" id="call-avatar"></div>
 				<div class="call-name" id="call-name"></div>
 				<div class="call-room" id="call-room"></div>
@@ -628,6 +795,12 @@ class CallManager {
 							<line x1="8" y1="23" x2="16" y2="23"></line>
 						</svg>
 					</button>
+					<button class="call-action-btn call-camera-btn" id="call-camera-btn" type="button" title="Camera">
+						<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M23 7l-7 5 7 5V7z"></path>
+							<rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+						</svg>
+					</button>
 					<button class="call-action-btn call-speaker-btn" id="call-speaker-btn" type="button" title="Speaker">
 						<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 							<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -647,6 +820,7 @@ class CallManager {
 		$id('call-accept-btn').onclick = () => this.acceptIncoming();
 		$id('call-decline-btn').onclick = () => this.declineIncoming();
 		$id('call-mute-btn').onclick = () => this.toggleMute();
+		$id('call-camera-btn').onclick = () => this.toggleCamera();
 		$id('call-speaker-btn').onclick = () => this.toggleSpeaker();
 		$id('call-hangup-btn').onclick = () => this.hangup();
 
@@ -676,13 +850,14 @@ class CallManager {
 
 		let status = t('call.connecting', 'Connecting...');
 		if (mode === 'incoming') {
-			status = t('call.incoming_call', 'Incoming voice call');
+			status = this.callMode === 'video' ? t('call.video_call', 'Video Call') : t('call.incoming_call', 'Incoming voice call');
 		} else if (mode === 'outgoing') {
-			status = t('call.calling', 'Calling...');
+			status = t('call.calling', 'Calling...') + (this.callMode === 'video' ? ' 📹' : '');
 		}
 		this.setStatusText(status);
 		this.updateMuteBtn();
 		this.updateSpeakerBtn();
+		this.updateVideoUI();
 	}
 
 	hideUI() {

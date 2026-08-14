@@ -49,7 +49,13 @@ const LANGUAGES = {
 			
 			// Voice calls
 			'call.start_voice_call': 'Start voice call',
+			'call.start_video_call': 'Start video call',
 			'call.voice_call': 'Voice Call',
+			'call.video_call': 'Video Call',
+			'call.camera_on': 'Camera on',
+			'call.camera_off': 'Camera off',
+			'call.camera_error': 'Unable to access camera. Please check browser permissions and devices.',
+			'call.video_degraded': 'Camera unavailable — switched to voice-only call.',
 			'call.incoming_call': 'Incoming voice call',
 			'call.calling': 'Calling...',
 			'call.connecting': 'Connecting...',
@@ -224,7 +230,13 @@ const LANGUAGES = {
 			
 			// 语音通话
 			'call.start_voice_call': '发起语音通话',
+			'call.start_video_call': '发起视频通话',
 			'call.voice_call': '语音通话',
+			'call.video_call': '视频通话',
+			'call.camera_on': '摄像头开启',
+			'call.camera_off': '摄像头已关闭',
+			'call.camera_error': '无法访问摄像头，请检查浏览器权限和设备。',
+			'call.video_degraded': '摄像头不可用，已降级为纯语音通话。',
 			'call.incoming_call': '来电：语音通话',
 			'call.calling': '正在呼叫...',
 			'call.connecting': '连接中...',

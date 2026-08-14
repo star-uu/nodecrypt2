@@ -415,6 +415,23 @@ export function createUserItem(user, isMe) {
 			callManager.startCall(user.clientId, rawName);
 		};
 		div.appendChild(callBtn);
+
+		// Add a video call button
+		// 添加视频通话按钮
+		const videoBtn = document.createElement('button');
+		videoBtn.className = 'member-call-btn video';
+		videoBtn.type = 'button';
+		videoBtn.title = t('call.start_video_call', 'Start video call');
+		videoBtn.setAttribute('aria-label', t('call.start_video_call', 'Start video call'));
+		videoBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M23 7l-7 5 7 5V7z"></path>
+			<rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+		</svg>`;
+		videoBtn.onclick = (e) => {
+			e.stopPropagation();
+			callManager.startVideoCall(user.clientId, rawName);
+		};
+		div.appendChild(videoBtn);
 	}
 	return div
 }
