@@ -153,7 +153,7 @@ function setupSettingsPanel() {
 			<div class="settings-section-title">${t('settings.theme', 'Theme Settings')}</div>
 			<div class="theme-selector" id="theme-selector">
 				${THEMES.map(theme => `
-					<div class="theme-item ${settings.theme === theme.id ? 'active' : ''}" data-theme-id="${theme.id}" style="background: ${theme.background};">
+					<div class="theme-item ${settings.theme === theme.id ? 'active' : ''}" data-theme-id="${theme.id}" style="background: ${theme.background}; background-size: cover; background-position: center;">
 					</div>
 				`).join('')}
 			</div>
