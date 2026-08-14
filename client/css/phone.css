@@ -28,6 +28,16 @@
 		top: 0;
 	}
 
+	/* 软键盘弹出时：容器链压到可视视口高度，消息不被键盘遮挡 */
+	/* Soft keyboard open: shrink the layout chain to the visual viewport */
+	body.keyboard-open,
+	body.keyboard-open .container,
+	body.keyboard-open .main {
+		height: var(--vvh, 100dvh) !important;
+		min-height: 0 !important;
+		max-height: none !important;
+	}
+
 	.main {
 		width: 100vw;
 		height: 100dvh;

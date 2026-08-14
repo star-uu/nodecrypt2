@@ -257,25 +257,42 @@ window.addEventListener('DOMContentLoaded', () => {
 	// keyboard via visualViewport (iOS keeps fixed elements below the layout
 	// viewport, Android occasionally skips the lift).
 	const inputAreaEl = document.querySelector('.chat-input-area');
+	const chatContainerEl = $id('chat-container');
 	let appliedKeyboardOffset = 0;
 
 	function syncInputToKeyboard() {
-		if (!inputAreaEl || window.innerWidth > 768) {
+		const isMobile = window.innerWidth <= 768;
+		if (!isMobile) {
 			if (appliedKeyboardOffset !== 0) {
 				appliedKeyboardOffset = 0;
 				inputAreaEl && (inputAreaEl.style.bottom = '');
 			}
+			document.documentElement.style.setProperty('--vvh', '');
+			document.body.classList.remove('keyboard-open');
 			return;
 		}
 		const vv = window.visualViewport;
 		let overlap = 0;
+		let vvHeight = 0;
 		if (vv) {
 			overlap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+			vvHeight = Math.round(vv.height);
 		}
 		overlap = Math.round(overlap);
 		if (overlap === appliedKeyboardOffset) return;
 		appliedKeyboardOffset = overlap;
 		inputAreaEl.style.bottom = overlap > 0 ? overlap + 'px' : '';
+		// 键盘弹出时把聊天容器压到可视视口高度，避免消息被键盘挡住
+		// Shrink the chat layout to the visual viewport so messages are not
+		// hidden behind the keyboard (iOS keeps 100dvh fixed).
+		const inChat = chatContainerEl && chatContainerEl.style.display !== 'none';
+		if (inChat && vvHeight > 0 && overlap > 0) {
+			document.documentElement.style.setProperty('--vvh', vvHeight + 'px');
+			document.body.classList.add('keyboard-open');
+		} else {
+			document.documentElement.style.setProperty('--vvh', '');
+			document.body.classList.remove('keyboard-open');
+		}
 		// 键盘弹出时把最新消息滚到可见区域（输入条上方）
 		// Keep the latest messages visible above the lifted input bar
 		if (overlap > 0) {
