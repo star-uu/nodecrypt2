@@ -237,7 +237,7 @@ export class ChatRoom {  constructor(state, env) {
       }
 
       // Handle encrypted messages
-      if (this.clients[clientId].shared && message.length <= (8 * 1024 * 1024)) {
+      if (this.clients[clientId].shared && message.length <= (32 * 1024 * 1024)) {
         this.processEncryptedMessage(clientId, message);
       }
     });    // Handle connection close

@@ -27,15 +27,40 @@ export async function processImage(file, callback) {
 		// Create canvas for drawing image
 		// 创建画布用于绘制图片
 		const canvas = createElement('canvas');
-		canvas.width = w;
-		canvas.height = h;
 		const ctx = canvas.getContext('2d');
-		ctx.drawImage(img, 0, 0, w, h);
-		let dataUrl;
-		// Export as webp with 90% quality
-		// 导出为 webp，90% 质量
-		dataUrl = canvas.toDataURL('image/webp', 0.90);
-		callback(dataUrl)
+
+		// Keep the encoded image under the app-level 32MB message cap
+		// (encrypted frames grow ~1.78x; runtime limit is 32 MiB).
+		// 控制编码后图片大小，确保加密后的消息帧不超出应用内 32MB 消息上限
+		const MAX_DATA_URL = 16 * 1024 * 1024;
+
+		let scale = 1;
+		let quality = 0.9;
+		for (let attempt = 0; attempt < 14; attempt++) {
+			const cw = Math.max(1, Math.round(w * scale));
+			const ch = Math.max(1, Math.round(h * scale));
+			canvas.width = cw;
+			canvas.height = ch;
+			ctx.drawImage(img, 0, 0, cw, ch);
+			const dataUrl = canvas.toDataURL('image/webp', quality);
+			if (dataUrl.length <= MAX_DATA_URL) {
+				callback(dataUrl);
+				return;
+			}
+			// First lower the quality, then shrink the canvas
+			// 先降画质，再缩小尺寸
+			if (quality > 0.5) {
+				quality -= 0.1;
+			} else {
+				scale *= 0.8;
+			}
+		}
+		// Final fallback: smallest reasonable size
+		// 最终兜底：使用最低画质输出
+		canvas.width = Math.max(1, Math.round(w * 0.2));
+		canvas.height = Math.max(1, Math.round(h * 0.2));
+		ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+		callback(canvas.toDataURL('image/webp', 0.4));
 	};
 	// Read file as data URL
 	// 以 dataURL 方式读取文件

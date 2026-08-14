@@ -6,10 +6,16 @@ body {
 	background: #fff;
 }
 
-.login-page{
-display: flex;
-justify-content: center;
-flex-direction: column;
+.login-page {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+	min-height: 100vh;
+	min-height: 100dvh;
+	box-sizing: border-box;
+	position: relative;
+	overflow: hidden;
 }
 
 .container {
@@ -35,6 +41,16 @@ flex-direction: column;
 	background: #fff;
 	border-bottom: 1px solid #dcdcdc;
 	position: relative;
+}
+
+.sidebar-username {
+	color: #1f2937;
+	font-weight: 600;
+	font-size: 15px;
+	margin-left: 10px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .settings-btn {
@@ -370,6 +386,7 @@ flex-direction: column;
 	font-size: 1.13rem;
 	font-weight: 600;
 	letter-spacing: 1px;
+	color: #1f2937;
 	cursor: pointer;
 	user-select: none;
 	transition: background-color 0.2s ease;
@@ -424,6 +441,7 @@ flex-direction: column;
 .room .title {
 	font-weight: 500;
 	font-size: 16px;
+	color: #1f2937;
 }
 
 .room .lastmsg {
@@ -497,7 +515,8 @@ flex-direction: column;
 	flex: 2.5;
 }
 
-.main::before {	content: "";
+.main::before {
+	content: "";
 	position: absolute;
 	inset: 0;
 	background: url(../assets/wallpaper-1.webp) left top / auto 100% repeat-x;
@@ -708,7 +727,8 @@ flex-direction: column;
 	display: flex;
 	align-items: center;
 	flex-direction: column;
-	width: 80%;
+	width: 100%;
+	max-width: 760px;
 	justify-content: center;
 	border-radius: var(--chat-input-border-radius);
 	min-height: 37px;
@@ -845,7 +865,7 @@ flex-direction: column;
 	display: flex;
 	flex-direction: column;
 	position: relative;
-	margin: 0 30px 0 0;
+	margin: 0;
 	justify-content: center;
 	min-height: 37px;
 	max-height: none;
@@ -1795,6 +1815,27 @@ flex-direction: column;
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+/* Image file preview inside a file message */
+.file-image-preview-container {
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 10px 10px 6px;
+	cursor: pointer;
+}
+
+.file-image-preview-container .file-image-preview {
+	margin: 0;
+	cursor: zoom-in;
+}
+
+.file-image-hint {
+	font-size: 12px;
+	color: #888;
+	user-select: none;
+	line-height: 1;
+}
+
 .bubble-content .bubble-img:first-child {
 	margin-top: 0;
 }
@@ -1843,14 +1884,18 @@ flex-direction: column;
 	}
 }
 .powered-by {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 16px;
   text-align: center;
-  color: #aaa;
+  color: rgba(255, 255, 255, 0.4);
   font-size: 13px;
-  margin: 24px 0 8px 0;
   letter-spacing: 0.2px;
+  z-index: 1;
 }
 .powered-by a {
-  color: #30a8f7;
+  color: rgba(255, 255, 255, 0.62);
   text-decoration: none;
 }
 .powered-by a:hover {

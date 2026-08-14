@@ -696,9 +696,22 @@ class CallManager {
 		if (this.isMuted) {
 			addClass(btn, 'active');
 			btn.title = t('call.unmute', 'Unmute');
+			btn.innerHTML = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<line x1="1" y1="1" x2="23" y2="23"></line>
+				<path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6"></path>
+				<path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
+				<line x1="12" y1="19" x2="12" y2="23"></line>
+				<line x1="8" y1="23" x2="16" y2="23"></line>
+			</svg>`;
 		} else {
 			removeClass(btn, 'active');
 			btn.title = t('call.mute', 'Mute');
+			btn.innerHTML = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"></path>
+				<path d="M19 11a7 7 0 0 1-14 0"></path>
+				<line x1="12" y1="18" x2="12" y2="23"></line>
+				<line x1="8" y1="23" x2="16" y2="23"></line>
+			</svg>`;
 		}
 	}
 

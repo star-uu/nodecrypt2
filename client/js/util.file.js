@@ -44,6 +44,13 @@ function generateFileId() {
 	return 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
+// Check whether a file should be previewed as an image
+function isImageFile(fileName) {
+	if (!fileName) return false;
+	const ext = fileName.split('.').pop().toLowerCase();
+	return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico', 'avif'].includes(ext);
+}
+
 // Calculate SHA-256 hash for data integrity verification
 // 计算SHA-256哈希值用于数据完整性验证
 async function calculateHash(data) {
@@ -196,7 +203,8 @@ function readFileAsArrayBuffer(file) {
 
 // Decompress volumes back to file
 // 将分卷解压回文件
-async function decompressVolumesToFile(volumes, fileName, originalHash = null) {
+// Decompress volumes to a blob object URL
+async function decompressVolumesToBlob(volumes, originalHash = null) {
 	try {
 		// Combine all volumes using base64 decoding
 		const combinedData = volumes.map(volume => {
@@ -233,20 +241,28 @@ async function decompressVolumesToFile(volumes, fileName, originalHash = null) {
 					}
 				}
 				
-				// Create blob and download
+				// Create blob URL
 				const blob = new Blob([decompressed]);
-				const url = URL.createObjectURL(blob);
-				const a = document.createElement('a');
-				a.href = url;
-				a.download = fileName;
-				document.body.appendChild(a);
-				a.click();
-				document.body.removeChild(a);
-				URL.revokeObjectURL(url);
-				
-				resolve();
+				resolve(URL.createObjectURL(blob));
 			});
 		});
+	} catch (error) {
+		console.error('Decompression error:', error);
+		throw error;
+	}
+}
+
+// Decompress volumes back to file (triggers a download)
+async function decompressVolumesToFile(volumes, fileName, originalHash = null) {
+	try {
+		const url = await decompressVolumesToBlob(volumes, originalHash);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = fileName;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
 	} catch (error) {
 		console.error('Decompression error:', error);
 		throw error;
@@ -400,6 +416,9 @@ async function handleFilesUpload(files, onSend) {
 			
 			updateProgress();
 			
+			// Mark image files so they can be previewed inline after the transfer
+			const isImage = isImageFile(file.name);
+			
 			// Create file transfer state
 			const fileTransfer = {
 				fileId,
@@ -409,7 +428,9 @@ async function handleFilesUpload(files, onSend) {
 				totalVolumes: volumes.length,
 				sentVolumes: 0,
 				status: 'sending',
-				originalHash
+				originalHash,
+				isImage,
+				previewUrl: isImage ? URL.createObjectURL(file) : null
 			};
 			
 			window.fileTransfers.set(fileId, fileTransfer);
@@ -422,7 +443,8 @@ async function handleFilesUpload(files, onSend) {
 				originalSize,
 				compressedSize,
 				totalVolumes: volumes.length,
-				originalHash
+				originalHash,
+				isImage
 			});
 			
 			// Send volumes
@@ -487,9 +509,11 @@ async function sendVolumes(fileId, volumes, onSend, updateProgress, fileName) {
 	if (!fileTransfer) return;
 	
 	let currentVolume = 0;
-	const batchSize = 5; // 每批发送5个分卷
+	// Send one volume per tick so the UI can repaint between encryptions
+	// 每次只发送一个分卷，让界面在加密间隙可以刷新，避免大文件卡死
+	const VOLUME_INTERVAL = 200;
 	
-	function sendNextBatch() {
+	function sendNextVolume() {
 		if (currentVolume >= volumes.length) {
 			// 发送完成消息
 			onSend({
@@ -503,35 +527,27 @@ async function sendVolumes(fileId, volumes, onSend, updateProgress, fileName) {
 			return;
 		}
 		
-		// 发送当前批次
-		const batchEnd = Math.min(currentVolume + batchSize, volumes.length);
-		const batch = [];
-		
-		for (let i = currentVolume; i < batchEnd; i++) {
-			batch.push({
-				type: 'file_volume',
-				fileId,
-				volumeIndex: i,
-				volumeData: volumes[i],
-				isLast: i === volumes.length - 1
-			});
-		}
-		
-		// 发送批次中的所有分卷
-		batch.forEach(volumeMsg => onSend(volumeMsg));
+		const i = currentVolume;
+		onSend({
+			type: 'file_volume',
+			fileId,
+			volumeIndex: i,
+			volumeData: volumes[i],
+			isLast: i === volumes.length - 1
+		});
 		
 		// 更新发送进度
-		fileTransfer.sentVolumes = batchEnd;
+		fileTransfer.sentVolumes = i + 1;
 		updateFileProgress(fileId);
 		
-		currentVolume = batchEnd;
+		currentVolume = i + 1;
 		
-		// 继续发送下一批，使用较短的延迟
-		setTimeout(sendNextBatch, 100);
+		// 继续发送下一个分卷
+		setTimeout(sendNextVolume, VOLUME_INTERVAL);
 	}
 	
 	// 开始发送
-	sendNextBatch();
+	sendNextVolume();
 }
 
 // Update file progress in chat
@@ -606,6 +622,16 @@ function updateFileProgress(fileId) {
 					}, 200);
 				}
 			}
+			
+			// Show inline image preview when the transfer is complete
+			if (transfer.isImage && transfer.previewUrl) {
+				const previewContainer = element.querySelector('.file-image-preview-container');
+				const previewImg = element.querySelector('.file-image-preview');
+				if (previewContainer && previewImg) {
+					previewImg.src = transfer.previewUrl;
+					previewContainer.style.display = 'flex';
+				}
+			}
 		}
 	});
 }
@@ -647,6 +673,7 @@ function handleFileStart(message, isPrivate) {
 		fileCount,
 		fileManifest,
 		isArchive,
+		isImage: message.isImage,
 		userName // 记录发送者名字
 	};
 	
@@ -673,6 +700,7 @@ function handleFileStart(message, isPrivate) {
 				fileName,
 				originalSize,
 				totalVolumes,
+				isImage: message.isImage,
 				userName
 			};
 		}
@@ -707,6 +735,18 @@ function handleFileComplete(message) {
 	if (transfer.receivedVolumes.size === transfer.totalVolumes) {
 		transfer.status = 'completed';
 		updateFileProgress(fileId);
+		
+		// Prepare the image preview blob URL for received images
+		if (transfer.isImage) {
+			decompressVolumesToBlob(transfer.volumeData, transfer.originalHash)
+				.then(url => {
+					transfer.previewUrl = url;
+					updateFileProgress(fileId);
+				})
+				.catch(error => {
+					console.error('Image preview failed:', error);
+				});
+		}
 	}
 }
 

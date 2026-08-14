@@ -24,6 +24,7 @@ const LANGUAGES = {
 			'ui.node_password': 'Room Password',
 			'ui.optional': '(optional)',
 			'ui.enter': 'ENTER',
+			'ui.tagline': 'End-to-end encrypted · Zero-knowledge · Anonymous',
 			'ui.connecting': 'Connecting...',
 			'ui.node_exists': 'Room already exists',
 			'ui.my_name': 'My Name',
@@ -89,6 +90,7 @@ const LANGUAGES = {
 			'file.drag_drop': 'Drag and drop files here',
 			'file.or': 'or',
 			'file.browse_files': 'browse files',
+			'file.click_to_preview': 'Click to preview',
 			
 			// Notifications and messages
 			'notification.enabled': 'Notifications enabled',
@@ -177,6 +179,7 @@ const LANGUAGES = {
 			'ui.node_password': '房间密码',
 			'ui.optional': '（可选）',
 			'ui.enter': '确定',
+			'ui.tagline': '端到端加密 · 零信任 · 完全匿名',
 			'ui.connecting': '连接中...',
 			'ui.node_exists': '此房间已存在',
 			'ui.my_name': '我的名字',
@@ -242,6 +245,7 @@ const LANGUAGES = {
 			'file.drag_drop': '拖拽文件到此处',
 			'file.or': '或',
 			'file.browse_files': '浏览文件',
+			'file.click_to_preview': '点击查看',
 			
 			// Notifications and messages
 			'notification.enabled': '通知已启用',

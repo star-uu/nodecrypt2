@@ -345,7 +345,8 @@ function renderFileMessage(fileData, isSender) {
 		originalSize,
 		totalVolumes,
 		fileCount,
-		isArchive
+		isArchive,
+		isImage
 	} = fileData;
 	
 	// For archive files, show file count and total size
@@ -363,6 +364,7 @@ function renderFileMessage(fileData, isSender) {
 
 	// Check actual file transfer status
 	const transfer = window.fileTransfers ? window.fileTransfers.get(fileId) : null;
+	const previewUrl = transfer && transfer.isImage && transfer.previewUrl ? transfer.previewUrl : null;
 	let statusText = '';
 	let progressWidth = '0%';
 	let downloadBtnStyle = 'display: none;';
@@ -394,6 +396,10 @@ function renderFileMessage(fileData, isSender) {
 
 	return `
 		<div class="file-message" data-file-id="${fileId}">
+			${isImage ? `<div class="file-image-preview-container" style="${previewUrl ? 'display:flex' : 'display:none'}">
+				<img class="bubble-img file-image-preview" src="${previewUrl || ''}" alt="${safeDisplayName}" onclick="window.previewImageFile('${fileId}')">
+				<span class="file-image-hint">${t('file.click_to_preview', 'Click to preview')}</span>
+			</div>` : ''}
 			<div class="file-main-content">
 				<div class="file-info">
 					<div class="file-icon">${fileIcon}</div>

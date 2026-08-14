@@ -208,7 +208,15 @@
 	background: rgba(255, 255, 255, 0.26);
 }
 
-.call-mute-btn.active,
+.call-mute-btn.active {
+	background: #c62828;
+	box-shadow: 0 6px 18px rgba(198, 40, 40, 0.35);
+}
+
+.call-mute-btn.active:hover {
+	background: #b71c1c;
+}
+
 .call-speaker-btn.active {
 	background: #ffb300;
 	box-shadow: 0 6px 18px rgba(255, 179, 0, 0.4);

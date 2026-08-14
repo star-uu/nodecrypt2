@@ -61,6 +61,7 @@ import {
 	addOtherMsg,          // 添加其他用户消息 / Add message from other users
 	addSystemMsg,         // 添加系统消息 / Add a system message
 	setupImagePreview,    // 设置图片预览功能 / Setup image preview
+	showImageModal,       // Show image modal
 	setupInputPlaceholder, // 设置输入框的占位提示 / Setup placeholder for input box
 	autoGrowInput         // 自动调整输入框高度 / Auto adjust input height
 } from './chat.js';
@@ -110,6 +111,11 @@ window.notifyMessage = notifyMessage;
 window.setupEmojiPicker = setupEmojiPicker;
 window.handleFileMessage = handleFileMessage;
 window.downloadFile = downloadFile;
+window.showImageModal = showImageModal;
+window.previewImageFile = (fileId) => {
+	const transfer = window.fileTransfers && window.fileTransfers.get(fileId);
+	if (transfer && transfer.previewUrl) showImageModal(transfer.previewUrl);
+};
 
 // 当 DOM 内容加载完成后执行初始化逻辑
 // Run initialization logic when the DOM content is fully loaded

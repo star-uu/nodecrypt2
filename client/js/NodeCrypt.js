@@ -502,7 +502,7 @@ class NodeCrypt {
 						a: 'w',
 						p: payloads,
 					}, this.serverShared);
-					if (!this.isOpen() || payload.length === 0 || payload.length > (8 * 1024 * 1024)) {
+					if (!this.isOpen() || payload.length === 0 || payload.length > (32 * 1024 * 1024)) {
 						return (false)
 					}
 					this.connection.send(payload)

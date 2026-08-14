@@ -179,7 +179,7 @@ wss.on('connection', (connection) => {
 
 		if (
 			clients[clientId].shared &&
-			message.length <= (8 * 1024 * 1024)
+			message.length <= (32 * 1024 * 1024)
 		) {
 
 			processEncryptedMessage(clientId, message);
