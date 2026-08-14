@@ -1906,3 +1906,60 @@ h2{
 	border-color: var(--nc-primary, #2f7df6);
 	color: #fff;
 }
+
+/* Custom wallpaper combo (gradient × pattern) */
+/* 自定义壁纸组合（渐变 × 图案） */
+.settings-sub-label {
+	font-size: 0.82rem;
+	color: var(--nc-muted, #8a94a6);
+	margin: 10px 0 6px;
+}
+
+.swatch-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.swatch {
+	width: 30px;
+	height: 30px;
+	border-radius: 8px;
+	cursor: pointer;
+	border: 2px solid transparent;
+	transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+	flex-shrink: 0;
+	box-sizing: border-box;
+}
+
+.gradient-swatch {
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.pattern-swatch {
+	background-color: #fff;
+	border: 1px solid var(--nc-border, #e6e9f0);
+}
+
+.pattern-swatch.none {
+	width: auto;
+	padding: 0 10px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	color: var(--nc-muted, #8a94a6);
+}
+
+.swatch:hover {
+	transform: scale(1.08);
+}
+
+.swatch.active {
+	border-color: var(--nc-primary, #2f7df6);
+	box-shadow: 0 0 0 2px rgba(47, 125, 246, 0.25);
+}
+
+[data-theme="dark"] .pattern-swatch {
+	background-color: #1b2436;
+}

@@ -49,6 +49,52 @@ const MG_THEMES = MG_GRADIENTS.map((g, i) => ({
 	background: `url('tg-patterns/pattern-${i + 1}.svg'), linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)), linear-gradient(135deg, ${g[0]} 0%, ${g[1]} 100%)`
 }));
 
+// 渐变底色库：g1~g7 采样自原 7 套几何壁纸，g8~g18 为柔和色板
+// Gradient bases: g1-g7 sampled from the original 7 wallpapers, g8-g18 pastel
+export const GRADIENTS = [
+	{ id: 'g1', css: 'linear-gradient(135deg, #7cbed8 0%, #c1dfa0 100%)' },
+	{ id: 'g2', css: 'linear-gradient(135deg, #b0d9d8 0%, #8ab2f0 100%)' },
+	{ id: 'g3', css: 'linear-gradient(135deg, #ccb4ec 0%, #a1c6ea 100%)' },
+	{ id: 'g4', css: 'linear-gradient(135deg, #e5a4c6 0%, #e9b291 100%)' },
+	{ id: 'g5', css: 'linear-gradient(135deg, #c2a2d5 0%, #e99cc2 100%)' },
+	{ id: 'g6', css: 'linear-gradient(135deg, #eca86c 0%, #e9aa5e 100%)' },
+	{ id: 'g7', css: 'linear-gradient(135deg, #e891c4 0%, #5ec0da 100%)' },
+	{ id: 'g8', css: 'linear-gradient(135deg, #e8f1fb 0%, #d5e3f7 100%)' },
+	{ id: 'g9', css: 'linear-gradient(135deg, #fdeef3 0%, #f9d8e5 100%)' },
+	{ id: 'g10', css: 'linear-gradient(135deg, #eafaf1 0%, #d0f0df 100%)' },
+	{ id: 'g11', css: 'linear-gradient(135deg, #fff7e6 0%, #fbe8c0 100%)' },
+	{ id: 'g12', css: 'linear-gradient(135deg, #f3eefd 0%, #e2d5fb 100%)' },
+	{ id: 'g13', css: 'linear-gradient(135deg, #e7f8fa 0%, #cdeef2 100%)' },
+	{ id: 'g14', css: 'linear-gradient(135deg, #f7f0fb 0%, #e8d7f5 100%)' },
+	{ id: 'g15', css: 'linear-gradient(135deg, #fdf2f0 0%, #f8dcd7 100%)' },
+	{ id: 'g16', css: 'linear-gradient(135deg, #eef6e9 0%, #d9ecd0 100%)' },
+	{ id: 'g17', css: 'linear-gradient(135deg, #f0f4fb 0%, #d8e2f2 100%)' },
+	{ id: 'g18', css: 'linear-gradient(135deg, #fbf0e7 0%, #f6dfc8 100%)' }
+];
+
+// 线稿图案库（Telegram 提取，pattern-1..33）
+// Line-art pattern library (extracted Telegram patterns)
+export const PATTERNS = Array.from({ length: 33 }, (_, i) => ({
+	id: 'p' + (i + 1),
+	url: 'tg-patterns/pattern-' + (i + 1) + '.svg'
+}));
+
+// 用任意渐变 × 任意图案组合出一个平铺主题对象
+// Build a tiled theme object from any gradient × any pattern
+export function buildCustomTheme(gradientId, patternId) {
+	const g = GRADIENTS.find(x => x.id === gradientId);
+	const p = PATTERNS.find(x => x.id === patternId);
+	const base = g ? g.css : GRADIENTS[0].css;
+	if (!p) {
+		return { id: 'custom', tile: false, background: base };
+	}
+	return {
+		id: 'custom',
+		tile: true,
+		background: `url('${p.url}'), linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55)), ${base}`
+	};
+}
+
 export const THEMES = [
 	{
 		id: 'theme1',
@@ -133,10 +179,12 @@ export function getCurrentTheme() {
 }
 // Apply theme to the document
 // 应用主题到文档
-export function applyTheme(themeId) {
-	const theme = THEMES.find(t => t.id === themeId);
+export function applyTheme(themeIdOrObj) {
+	const theme = typeof themeIdOrObj === 'string'
+		? THEMES.find(t => t.id === themeIdOrObj)
+		: themeIdOrObj;
 	if (!theme) {
-		console.warn(`Theme with id "${themeId}" not found`);
+		console.warn(`Theme not found: ${themeIdOrObj}`);
 		return false;
 	}
 	
@@ -175,8 +223,15 @@ export function applyTheme(themeId) {
 }
 
 // Initialize theme on page load
-// 页面加载时初始化主题
+// 页面加载时初始化主题（自定义组合优先于预设主题）
 export function initTheme() {
+	try {
+		const settings = JSON.parse(localStorage.getItem('settings') || '{}');
+		if (settings.customGradient) {
+			applyTheme(buildCustomTheme(settings.customGradient, settings.customPattern));
+			return;
+		}
+	} catch {}
 	const currentTheme = getCurrentTheme();
 	applyTheme(currentTheme.id);
 }

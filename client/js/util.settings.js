@@ -13,7 +13,7 @@ import {
 
 // Import theme utilities
 // 导入主题工具函数
-import { THEMES, getCurrentTheme, applyTheme } from './util.theme.js';
+import { THEMES, GRADIENTS, PATTERNS, buildCustomTheme, getCurrentTheme, applyTheme } from './util.theme.js';
 
 // Import i18n utilities
 // 导入国际化工具函数
@@ -25,7 +25,9 @@ const DEFAULT_SETTINGS = {
 	notify: false,
 	sound: false,
 	theme: 'theme1',
-	appearance: 'light' // 外观：light / dark / auto
+	appearance: 'light', // 外观：light / dark / auto
+	customGradient: '',  // 自定义组合：渐变底色 id
+	customPattern: ''    // 自定义组合：线稿图案 id（空 = 无图案）
 	// 注意：我们不设置默认语言，让系统自动检测浏览器语言
 	// Note: We don't set a default language, let the system auto-detect browser language
 };
@@ -53,14 +55,18 @@ function saveSettings(settings) {
 		sound,
 		theme,
 		language,
-		appearance
+		appearance,
+		customGradient,
+		customPattern
 	} = settings;
 	localStorage.setItem('settings', JSON.stringify({
 		notify,
 		sound,
 		theme,
 		language,
-		appearance
+		appearance,
+		customGradient,
+		customPattern
 	}))
 }
 
@@ -157,6 +163,23 @@ function setupSettingsPanel() {
 						? `background:${theme.background} !important; background-size:auto !important; background-repeat:repeat !important; background-position:0 0 !important;`
 						: `background: ${theme.background}; background-size: cover; background-position: center;`}">
 					</div>
+				`).join('')}
+			</div>
+		</div>
+
+		<div class="settings-section">
+			<div class="settings-section-title">${t('settings.wallpaper_combo', 'Wallpaper Combo')}</div>
+			<div class="settings-sub-label">${t('settings.gradient_label', 'Base Gradient')}</div>
+			<div class="swatch-row" id="gradient-selector">
+				${GRADIENTS.map(g => `
+					<div class="swatch gradient-swatch ${settings.customGradient === g.id ? 'active' : ''}" data-gradient-id="${g.id}" style="background: ${g.css};" title="${g.id}"></div>
+				`).join('')}
+			</div>
+			<div class="settings-sub-label">${t('settings.pattern_label', 'Pattern')}</div>
+			<div class="swatch-row" id="pattern-selector">
+				<div class="swatch pattern-swatch none ${!settings.customPattern ? 'active' : ''}" data-pattern-id="" title="${t('settings.pattern_none', 'None')}">${t('settings.pattern_none', 'None')}</div>
+				${PATTERNS.map(p => `
+					<div class="swatch pattern-swatch ${settings.customPattern === p.id ? 'active' : ''}" data-pattern-id="${p.id}" style="background: url('${p.url}'); background-size: cover;" title="${p.id}"></div>
 				`).join('')}
 			</div>
 		</div>
@@ -350,17 +373,22 @@ function setupSettingsPanel() {
 			const themeItem = e.target.closest('.theme-item');
 			if (themeItem) {
 				const themeId = themeItem.dataset.themeId;
-				if (themeId && themeId !== settings.theme) {
+				if (themeId && (themeId !== settings.theme || settings.customGradient)) {
 					// Update active state
 					$$('.theme-item', themeSelector).forEach(item => {
 						item.classList.remove('active');
 					});
 					themeItem.classList.add('active');
 					
-					// Apply theme and save settings
+					// Apply theme and save settings; clear custom combo so the
+					// preset takes effect
+					// 应用预设主题并保存；清除自定义组合让预设生效
 					settings.theme = themeId;
+					settings.customGradient = '';
+					settings.customPattern = '';
 					applyTheme(themeId);
 					saveSettings(settings);
+					clearComboActiveStates();
 				}
 			}
 		});
@@ -384,19 +412,59 @@ function setupSettingsPanel() {
 			const themeItem = e.target.closest('.theme-item');
 			if (themeItem) {
 				const themeId = themeItem.dataset.themeId;
-				if (themeId && themeId !== settings.theme) {
+				if (themeId && (themeId !== settings.theme || settings.customGradient)) {
 					// Update active state
 					$$('.theme-item', themeSelector).forEach(item => {
 						item.classList.remove('active');
 					});
 					themeItem.classList.add('active');
 					
-					// Apply theme and save settings
+					// Apply theme and save settings; clear custom combo so the
+					// preset takes effect
+					// 应用预设主题并保存；清除自定义组合让预设生效
 					settings.theme = themeId;
+					settings.customGradient = '';
+					settings.customPattern = '';
 					applyTheme(themeId);
 					saveSettings(settings);
+					clearComboActiveStates();
 				}
 			}
+		});
+	}
+
+	// ---- Custom wallpaper combo (gradient × pattern) ----
+	// 自定义壁纸组合（渐变 × 图案）
+	const clearComboActiveStates = () => {
+		$$('.gradient-swatch', settingsContent).forEach(s => s.classList.remove('active'));
+		$$('.pattern-swatch', settingsContent).forEach(s => s.classList.remove('active'));
+	};
+	const applyCustomCombo = () => {
+		// 选中自定义组合时取消预设高亮
+		$$('.theme-item', settingsContent).forEach(item => item.classList.remove('active'));
+		applyTheme(buildCustomTheme(settings.customGradient, settings.customPattern));
+		saveSettings(settings);
+	};
+	const gradientSelector = $('#gradient-selector', settingsContent);
+	if (gradientSelector) {
+		$$('.gradient-swatch', gradientSelector).forEach(sw => {
+			sw.onclick = () => {
+				$$('.gradient-swatch', gradientSelector).forEach(s => s.classList.remove('active'));
+				sw.classList.add('active');
+				settings.customGradient = sw.dataset.gradientId;
+				applyCustomCombo();
+			};
+		});
+	}
+	const patternSelector = $('#pattern-selector', settingsContent);
+	if (patternSelector) {
+		$$('.pattern-swatch', patternSelector).forEach(sw => {
+			sw.onclick = () => {
+				$$('.pattern-swatch', patternSelector).forEach(s => s.classList.remove('active'));
+				sw.classList.add('active');
+				settings.customPattern = sw.dataset.patternId || '';
+				applyCustomCombo();
+			};
 		});
 	}
 	// Appearance (light / dark / auto) buttons
@@ -505,6 +573,12 @@ function initSettings() {
 	// 从设置中应用主题
 	if (settings.theme) {
 		applyTheme(settings.theme);
+	}
+
+	// Apply custom wallpaper combo (gradient × pattern) when configured
+	// 应用自定义壁纸组合（渐变 × 图案）
+	if (settings.customGradient) {
+		applyTheme(buildCustomTheme(settings.customGradient, settings.customPattern));
 	}
 
 	// Apply appearance (light / dark / auto)
