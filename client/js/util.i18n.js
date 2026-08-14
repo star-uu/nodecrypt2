@@ -94,10 +94,6 @@ const LANGUAGES = {
 			'settings.appearance_light': 'Light',
 			'settings.appearance_dark': 'Dark',
 			'settings.appearance_auto': 'Auto',
-			'settings.wallpaper_combo': 'Wallpaper Combo',
-			'settings.gradient_label': 'Base Gradient',
-			'settings.pattern_label': 'Pattern',
-			'settings.pattern_none': 'None',
 			'settings.chinese': 'Chinese',
 			'settings.english': 'English',
 			
@@ -279,10 +275,6 @@ const LANGUAGES = {
 			'settings.appearance_light': '浅色',
 			'settings.appearance_dark': '深色',
 			'settings.appearance_auto': '跟随系统',
-			'settings.wallpaper_combo': '壁纸组合',
-			'settings.gradient_label': '渐变底色',
-			'settings.pattern_label': '图案',
-			'settings.pattern_none': '无',
 			'settings.chinese': '中文',
 			'settings.english': 'English',
 			

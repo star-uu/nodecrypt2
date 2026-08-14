@@ -3,98 +3,6 @@
 
 // Theme data - simplified structure
 // 主题数据 - 简化结构
-// Telegram 提取的图案壁纸（pattern-1..33，来源 1a23 blog）
-// 图案是黑线稿，叠加在柔和底色上按原始尺寸平铺（Telegram 原生方式）
-// Telegram extracted pattern wallpapers: black line-art tiled over soft bases
-const TG_BASES = [
-	'#e8f1fb 0%, #d5e3f7 100%',
-	'#fdeef3 0%, #f9d8e5 100%',
-	'#eafaf1 0%, #d0f0df 100%',
-	'#fff7e6 0%, #fbe8c0 100%',
-	'#f3eefd 0%, #e2d5fb 100%',
-	'#e7f8fa 0%, #cdeef2 100%',
-	'#f7f0fb 0%, #e8d7f5 100%',
-	'#fdf2f0 0%, #f8dcd7 100%',
-	'#eef6e9 0%, #d9ecd0 100%',
-	'#f0f4fb 0%, #d8e2f2 100%',
-	'#fbf0e7 0%, #f6dfc8 100%'
-];
-
-const TG_THEMES = Array.from({ length: 33 }, (_, i) => {
-	const n = i + 1;
-	const base = TG_BASES[i % TG_BASES.length];
-	return {
-		id: 'tg' + n,
-		tile: true,
-		background: `url('tg-patterns/pattern-${n}.svg'), linear-gradient(rgba(255,255,255,0.72), rgba(255,255,255,0.72)), linear-gradient(135deg, ${base})`
-	};
-});
-
-// 合并款：Telegram 线稿图案 × 原 7 套几何渐变底色（渐变主色采样自原 PNG）
-// Merged: TG line-art patterns over the ORIGINAL 7 gradient bases
-// (gradient colors sampled from the original PNG themes)
-const MG_GRADIENTS = [
-	['#7cbed8', '#c1dfa0'], // theme1 青绿→浅绿
-	['#b0d9d8', '#8ab2f0'], // theme2 青→蓝
-	['#ccb4ec', '#a1c6ea'], // theme3 紫→蓝
-	['#e5a4c6', '#e9b291'], // theme4 粉→杏
-	['#c2a2d5', '#e99cc2'], // theme5 紫→粉
-	['#eca86c', '#e9aa5e'], // theme6 橙
-	['#e891c4', '#5ec0da']  // theme7 粉→青
-];
-
-const MG_THEMES = MG_GRADIENTS.map((g, i) => ({
-	id: 'mg' + (i + 1),
-	tile: true,
-	background: `url('tg-patterns/pattern-${i + 1}.svg'), linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)), linear-gradient(135deg, ${g[0]} 0%, ${g[1]} 100%)`
-}));
-
-// 渐变底色库：g1~g7 采样自原 7 套几何壁纸，g8~g18 为柔和色板
-// Gradient bases: g1-g7 sampled from the original 7 wallpapers, g8-g18 pastel
-export const GRADIENTS = [
-	{ id: 'g1', css: 'linear-gradient(135deg, #7cbed8 0%, #c1dfa0 100%)' },
-	{ id: 'g2', css: 'linear-gradient(135deg, #b0d9d8 0%, #8ab2f0 100%)' },
-	{ id: 'g3', css: 'linear-gradient(135deg, #ccb4ec 0%, #a1c6ea 100%)' },
-	{ id: 'g4', css: 'linear-gradient(135deg, #e5a4c6 0%, #e9b291 100%)' },
-	{ id: 'g5', css: 'linear-gradient(135deg, #c2a2d5 0%, #e99cc2 100%)' },
-	{ id: 'g6', css: 'linear-gradient(135deg, #eca86c 0%, #e9aa5e 100%)' },
-	{ id: 'g7', css: 'linear-gradient(135deg, #e891c4 0%, #5ec0da 100%)' },
-	{ id: 'g8', css: 'linear-gradient(135deg, #e8f1fb 0%, #d5e3f7 100%)' },
-	{ id: 'g9', css: 'linear-gradient(135deg, #fdeef3 0%, #f9d8e5 100%)' },
-	{ id: 'g10', css: 'linear-gradient(135deg, #eafaf1 0%, #d0f0df 100%)' },
-	{ id: 'g11', css: 'linear-gradient(135deg, #fff7e6 0%, #fbe8c0 100%)' },
-	{ id: 'g12', css: 'linear-gradient(135deg, #f3eefd 0%, #e2d5fb 100%)' },
-	{ id: 'g13', css: 'linear-gradient(135deg, #e7f8fa 0%, #cdeef2 100%)' },
-	{ id: 'g14', css: 'linear-gradient(135deg, #f7f0fb 0%, #e8d7f5 100%)' },
-	{ id: 'g15', css: 'linear-gradient(135deg, #fdf2f0 0%, #f8dcd7 100%)' },
-	{ id: 'g16', css: 'linear-gradient(135deg, #eef6e9 0%, #d9ecd0 100%)' },
-	{ id: 'g17', css: 'linear-gradient(135deg, #f0f4fb 0%, #d8e2f2 100%)' },
-	{ id: 'g18', css: 'linear-gradient(135deg, #fbf0e7 0%, #f6dfc8 100%)' }
-];
-
-// 线稿图案库（Telegram 提取，pattern-1..33）
-// Line-art pattern library (extracted Telegram patterns)
-export const PATTERNS = Array.from({ length: 33 }, (_, i) => ({
-	id: 'p' + (i + 1),
-	url: 'tg-patterns/pattern-' + (i + 1) + '.svg'
-}));
-
-// 用任意渐变 × 任意图案组合出一个平铺主题对象
-// Build a tiled theme object from any gradient × any pattern
-export function buildCustomTheme(gradientId, patternId) {
-	const g = GRADIENTS.find(x => x.id === gradientId);
-	const p = PATTERNS.find(x => x.id === patternId);
-	const base = g ? g.css : GRADIENTS[0].css;
-	if (!p) {
-		return { id: 'custom', tile: false, background: base };
-	}
-	return {
-		id: 'custom',
-		tile: true,
-		background: `url('${p.url}'), linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55)), ${base}`
-	};
-}
-
 export const THEMES = [
 	{
 		id: 'theme1',
@@ -122,34 +30,7 @@ export const THEMES = [
 	},	{
 		id: 'theme7',
 		background: 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAKV0lEQVRoQ42ZW48rVxGFu8dz+Ok2+TEBAgIhJCQkpDwgIRESCAqXALmeBN4ztmc6VetSu3bbgyBqte1zTvf+9lqrqrpZ377zh21Zt2VZ4tB5zfP6wuPB5+f4zGN9uC7LIY9LHevhvCyP+Z1nfM8/x2/x3f8mz7hOXjeuhfv4fmMNXEv+L3/Tx/yMX+oH/bIu69sffiCQ+BsNiDfQTfLGgDLMNRa6hzkv62NC8CCYYBIE0IaIs643bVrf0A6Sq9fajTfQVsAEyB/jbOp5RwaMlRmq5KK4OO+6QZ4IAogBA/CH/Pu6RqhhtSdVyhne2KHKLQQJCXL6cCjii9xTRlYoVbTDgNGiqQhBCqarUvZKhQdIqkNlcknpAi9+2GsbbrLhCiKtRhCAdU92ZfImu6xgd5mRAqnFG+SpqbLPyS1I3h8wLav521BhZEULxp8lhEA+orVeg6kwZsidE+UjreJgVz4C4E2DqSIgaOQsN8IZbFm8AZEyDkSo0rZ7p8gxQCxlh6mLzoFfvZBetZwJ2EpKACY+N5CqXq1q/X8VS9VqCjyzkYsPz4S1EqSqQldGUlb16lUr1HEVcqAB05QQSAZ+dVmWJbkZqoSl+Oul10UX+qyk6RC01vFPc9UqGZtfK+iztQij/iEIwsQRIAWWMAUe1Q4QLew3RYZLBUBlV4sHB9VIJajIwx6kebJb6yF3Szd2Qytrace7GgIpmxWIy2/AuC/d9I4dwE0uqEpsaUG8REnbKSIQ78LUdeeGOHX2fcUqNdRT3O3RR9wUaS2XXSz/Tjfn78NKvVKlIjxuFGkZ0U5tvbujamkhbnBT1bKl2E8ma2VO1EcwrkwZ8QYOR2yCor1uQQwQab0P4gvM1WQ/b+3Gk1zklBGD9HEl5y0r4py49DKY3n0XWTdBqAAYKuDzcyjhg9aqxiN5J9++xEXUEGvWCltUeB343s1bGcbcxb/j+QyKTGFvoW5NkItvasR3K5HnhLguhzgflvVrgbAEj0oFZVpGtj44ts7eZ61pLHE/qfLrhig1VLkyI3RB69w3MKNKAWSlEleBXLcJJC/Ywh4QBRPZoCpjaNz2Y3yN8KOfuBl6pOfgmCB9lGchdVMuO3U1VKVGLgxyWC6hxmV5pCJ9R8ZngRQEnx+gDCZYP4/o7OGwjfCegNNa7iMF08tvfkYORgcfubCdUgnayZZKWyXEOUG+OrEhWg2qkN85mvAcUJqzAKIxhap4eBwPVu7kBCGER34+YOUDVZ9+dc9eaqUIrcSQEyLPAbAOiPP2Zlm/vAPSYRz0PBsmQbZ6Stw9KcpinooniHyGga2ckzEw2gkIuCFUqVxinwMoVaASByhxXt4sT3GsXwCEsuK/UoSfDVBAUoQgtxYrNfTQlaoQhg9WPOck7adOKe77qtSm2ayELVXhToiVlkqI77YfLOvnpz9v7qq5E7HvAjDEbK+0FpXhgmCv3OEWfqoxLFW2aooQxhB5PY4muXkv7hlxhp2UDSgBSw01vkuQJUA+A4gvMC7GC8Z3hL0rQ29XVqoU97yMx2Bbq8KuDfAEjE1RheR9UgkFPAEKIsrtBCE1DPKv08dQBLug+g0AgwiGv7ExEk6ht71QzRz88fRYtmpvUqbyq6q4pSJWA0oIQiAosw3kaWU2SpFPAaJdaNYymKES4gVTcAeZlRmviRjqUXI5muB7Wko5oaq+ntXITU2IgInGF/8KSmQ+zqpUT5GPhJhA/n76y8ZgWdI8y1b4bWTmxU2ydnFukijLzgEW3hRy0KtAqCcBJO+XKsf9HhIgDyqSAJcAGuX2sHSQVCZVWT85fTJAZDFCxcUBuLMZrCZl7s1gtlgVgP4OzC8tRmOFTePA/QqCIFccggg1zlO1ClVgL6qzfnz6K0ByF+4rM0qzodAo4WlPxc1iLq258zeFgCXbpRsABonrPQdIbuIVQIYYikwgLr86rx+d/rbFLdX+u71civlb7zOsLqHKDczOarCWe801SjXh8pz5eDlIjUNAQJFtQDzMIMhHqaLyCwjNWh+c/gGQezAshSzJHYajS2ue9X7YVW1UNM9mHGey7yTAAElFXhJEiqQaV6iS5XZVPmivs2yWjdBQrmTr70+fBgifgWmvnG1kMz/QKC8cHTyLacibpmT2HY4wOmvxVsEgqUYez3kAgtYCSKoRx6WDBBhL8MjMJcd4VLJ41P3d6Z8AMcxoRoRxs6xpVAqNUSafY8bIj0KghokgF0jmgWpMEIChpa6wVkIsywXWCpgEyDIMgPY5Zy6U5+z8AfL+8d8bZ5lX1CiYWyhbbLaa+gIgnAEvnmeoUEcsHiCCOXSIAYNFqwBg5hIcG2eA/Pb4WVQt1mxULQW/HjGnBxyPMHwA46TqZ4hWlrMvuNGlheLzs5QAwCNBAOAjQQBBa0GRUmWUYvcW9hmO9SnE+pvjFyq//V3RGKX7A854o0GImpr1ZOkxg2WVeWGYZxWuj5EHgVwEcgmIhCKAYTL4BEKXr9lLGw8nCeTXxy+hSFdiZGM8/I9XMpkJhv4Gxs2zIKgMbeTFhxKhCJQIoAQhDNUAUAOBAgDpxxgq/eC1/ur4VcxatlU85HcruWpx8+vPrMT0myZXDH6yls8FEQu/WomAAcRjLl4gTZGEepY6hBhjS5+O6Ziw1i+PX3No1PvU/HG8gnHABZInq1GfZ4UGCIGsBrNAJS4JYTUEkkoACKrIXrl4qKHWkDlGb1MM6hzL+sXxLZ9HpIoz4RfFzAVDzohTGX+25Vi51EDVFwCCEBMoF0+QbTkXSHyGvWSrCnxCaIAMmARIIKwTRaZvfizx5wFSakiVGxu13R+BJ8rN20BMslIDiozKRBWkRsLkonGWxaDGKMOwlGA8ndcLbEdAm7r+7PhNKfLqrkuJ2v2eF13QUDnB3gPBAmvRUqRBWJUMPcPeFNF4P0al8fbRa1p/ChDmYrLT3kL1XTYzQNsZPGkWSC7EtlJ1kp3SVrCWVCmboQR3EE/Ezsawdm26FXnv+G0pUr6/p0APd4fqIGqQ8LPnJ/m/stEyUkAKeuUElnQ+2kOfsrGHwNJ+AhBidWsp2/eDPVlrdHuHnQ9IWoxUYaltuZAqVGNBTtBLdB5B5/sEB9ztYV9s1h8f/8P3Wlq5z/0vTn/+iqX8Yg03RR/hEEh7cYEj2LTWOUpvt5Uh+O+UET1s9Zcj+6oJRRJkhpjVGQH/X9lo76NkK6hSg2DPCBc/MsKKZUU4QNqa6h/xvRr1VK3GmtYfTYooOU0hl+Kh0Aw0Xm+qjyjsY0fbCLIPe1pKoe8NEX3HZRflvFmrF6HqZxGOAXIf4hZkP2e5OUkVWaEelDyi73oGe4cbo7NBG3Zr1YsQB/2VwAPEpbdnwWF/FcRVzLsV35ENfWdX50SLvqDh0DaaGmEbHPfWYub8NqeV3+pf3Mj1XVjrdTVuQKpi8Z9xVNC5gVgRh50g+9Druzo7Hq6aItgMN0NskJ6BWtV08APkv1WoesWaFNHuW7Hx/6XsQFyxdPMedg6NY+FZsTzC+1mk1JCKLuNURPe6A5Mb+j3MSyTCGr86pwAAAABJRU5ErkJggg==)'
-	},
-	{
-		id: 'theme8',
-		// 六边形蜂巢 / hexagon lattice（蓝紫渐变）
-		background: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23cfe4ff'/%3E%3Cstop offset='1' stop-color='%23a8c4ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='50' height='50' fill='url(%23g)'/%3E%3Cpath d='M25 2l19.9 11.5v23L25 48 5.1 36.5v-23z' fill='none' stroke='%23ffffff' stroke-opacity='0.55' stroke-width='1.6'/%3E%3Cpath d='M25 14l13 7.5v15L25 44l-13-7.5v-15z' fill='none' stroke='%23ffffff' stroke-opacity='0.35' stroke-width='1.2'/%3E%3C/svg%3E\")"
-	},
-	{
-		id: 'theme9',
-		// 同心圆环 / rings（青绿渐变）
-		background: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ccf5e5'/%3E%3Cstop offset='1' stop-color='%2393ddc3'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='50' height='50' fill='url(%23g)'/%3E%3Ccircle cx='25' cy='25' r='20' fill='none' stroke='%23ffffff' stroke-opacity='0.5' stroke-width='1.5'/%3E%3Ccircle cx='25' cy='25' r='13' fill='none' stroke='%23ffffff' stroke-opacity='0.38' stroke-width='1.2'/%3E%3Ccircle cx='25' cy='25' r='6' fill='none' stroke='%23ffffff' stroke-opacity='0.28' stroke-width='1'/%3E%3C/svg%3E\")"
-	},
-	{
-		id: 'theme10',
-		// 山形三角 / triangles（桃粉渐变）
-		background: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ffe4e0'/%3E%3Cstop offset='1' stop-color='%23ffb8c6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='50' height='50' fill='url(%23g)'/%3E%3Cpath d='M0 40 L12 18 L24 40 Z' fill='none' stroke='%23ffffff' stroke-opacity='0.5' stroke-width='1.4'/%3E%3Cpath d='M20 40 L34 12 L50 40 Z' fill='none' stroke='%23ffffff' stroke-opacity='0.34' stroke-width='1.2'/%3E%3C/svg%3E\")"
-	},
-	{
-		id: 'theme11',
-		// 菱形格 / diamonds（暖黄渐变）
-		background: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23fff3cf'/%3E%3Cstop offset='1' stop-color='%23ffd98a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='50' height='50' fill='url(%23g)'/%3E%3Cpath d='M25 0 L50 25 L25 50 L0 25 Z' fill='none' stroke='%23ffffff' stroke-opacity='0.5' stroke-width='1.5'/%3E%3Cpath d='M25 12 L38 25 L25 38 L12 25 Z' fill='none' stroke='%23ffffff' stroke-opacity='0.32' stroke-width='1.2'/%3E%3C/svg%3E\")"
-	},
-	{
-		id: 'theme12',
-		// 波浪线 / waves（薰衣草渐变）
-		background: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23eee6ff'/%3E%3Cstop offset='1' stop-color='%23cdb8f5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='50' height='50' fill='url(%23g)'/%3E%3Cpath d='M0 28 Q12.5 18 25 28 T50 28' fill='none' stroke='%23ffffff' stroke-opacity='0.5' stroke-width='1.5'/%3E%3Cpath d='M0 38 Q12.5 28 25 38 T50 38' fill='none' stroke='%23ffffff' stroke-opacity='0.32' stroke-width='1.2'/%3E%3C/svg%3E\")"
-	},
-	...TG_THEMES,
-	...MG_THEMES
+	}
 ];
 
 // Get current theme from settings
@@ -179,12 +60,10 @@ export function getCurrentTheme() {
 }
 // Apply theme to the document
 // 应用主题到文档
-export function applyTheme(themeIdOrObj) {
-	const theme = typeof themeIdOrObj === 'string'
-		? THEMES.find(t => t.id === themeIdOrObj)
-		: themeIdOrObj;
+export function applyTheme(themeId) {
+	const theme = THEMES.find(t => t.id === themeId);
 	if (!theme) {
-		console.warn(`Theme not found: ${themeIdOrObj}`);
+		console.warn(`Theme with id "${themeId}" not found`);
 		return false;
 	}
 	
@@ -195,16 +74,7 @@ export function applyTheme(themeIdOrObj) {
 		mainElement.style.background = '';
 		
 		// Apply new background
-		if (theme.tile) {
-			// 平铺主题（Telegram 图案）：按原始尺寸重复铺满
-			// Tiled themes (Telegram patterns): repeat at natural size
-			mainElement.style.background = theme.background;
-			mainElement.style.backgroundRepeat = 'repeat';
-			mainElement.style.backgroundSize = 'auto';
-			mainElement.style.backgroundPosition = '0 0';
-		} else if (theme.background.startsWith('url(')) {
-			// 原有几何图案：拉伸铺满
-			// Original geometric patterns: stretched to fill
+		if (theme.background.startsWith('url(')) {
 			mainElement.style.backgroundImage = theme.background;
 			mainElement.style.backgroundSize = '100% 100%';
 			mainElement.style.backgroundRepeat = 'no-repeat';
@@ -223,15 +93,8 @@ export function applyTheme(themeIdOrObj) {
 }
 
 // Initialize theme on page load
-// 页面加载时初始化主题（自定义组合优先于预设主题）
+// 页面加载时初始化主题
 export function initTheme() {
-	try {
-		const settings = JSON.parse(localStorage.getItem('settings') || '{}');
-		if (settings.customGradient) {
-			applyTheme(buildCustomTheme(settings.customGradient, settings.customPattern));
-			return;
-		}
-	} catch {}
 	const currentTheme = getCurrentTheme();
 	applyTheme(currentTheme.id);
 }
