@@ -1,22 +1,33 @@
-/* 浮动标签动画样式 */
+/* 浮动标签动画样式 / Floating label animation */
 .input-group {
   position: relative;
 }
 
+/* Label rests inside the input; floats up and shrinks when focused or filled */
 .input-group .floating-label {
   position: absolute;
-  top: 14px;
+  top: 50%;
   left: 16px;
+  transform: translateY(-50%);
   pointer-events: none;
-  font-size: 1.1rem;
+  font-size: 1rem;
+  line-height: 1.2;
   color: #888;
-  transition: 0.25s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  white-space: nowrap;
+  max-width: calc(100% - 32px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.25s ease,
+              font-size 0.25s ease;
 }
 
 .input-group input:focus + .floating-label,
 .input-group input:not(:placeholder-shown) + .floating-label {
   color: #30a8f7;
-  transform: translateY(-40px);
+  transform: translateY(-160%) scale(0.8);
+  transform-origin: left center;
+  font-size: 0.85rem;
 }
 
 .input-group .floating-label span {

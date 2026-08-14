@@ -98,7 +98,9 @@ body.login-page::after {
 .flip-card-back {
 	transform: rotateX(180deg);
 	overflow: hidden;
-	background: rgba(16, 23, 42, 0.88);
+	/* 不透明深色背景，避免登录页光斑透过卡片影响帮助内容阅读 */
+	/* Opaque dark background so the login glow cannot bleed through the help text */
+	background: linear-gradient(165deg, #16203a 0%, #0d1428 100%);
 	border-color: rgba(255, 255, 255, 0.18);
 }
 
@@ -208,7 +210,7 @@ body.login-page::after {
 	overflow-y: auto;
 	max-height: none;
 	padding: 0 16px 12px;
-	color: rgba(255, 255, 255, 0.78);
+	color: #dce5f5;
 	line-height: 1.6;
 }
 
@@ -228,7 +230,7 @@ body.login-page::after {
 
 .help-section p {
 	font-size: 0.92rem;
-	color: rgba(255, 255, 255, 0.66);
+	color: rgba(255, 255, 255, 0.84);
 	margin-bottom: 12px;
 	line-height: 1.5;
 }
@@ -236,7 +238,7 @@ body.login-page::after {
 .help-section ol,
 .help-section ul {
 	font-size: 0.88rem;
-	color: rgba(255, 255, 255, 0.66);
+	color: rgba(255, 255, 255, 0.84);
 	margin-left: 16px;
 	margin-bottom: 12px;
 }
@@ -252,32 +254,26 @@ body.login-page::after {
 }
 
 .help-important {
-	background: rgba(255, 193, 7, 0.12);
-	border: 1px solid rgba(255, 193, 7, 0.28);
+	background: rgba(255, 193, 7, 0.14);
+	border: 1px solid rgba(255, 193, 7, 0.32);
 	border-radius: 10px;
 	padding: 10px 12px;
-	color: #ffe9a8;
+	color: #ffedb3;
 	font-size: 0.88rem;
 	line-height: 1.5;
 }
 
-/* 滚动条样式 */
+/* 滚动条样式：隐藏滚动条，保留滚动能力 */
+/* Hide the scrollbar but keep scrolling */
+.help-content {
+	scrollbar-width: none; /* Firefox */
+	-ms-overflow-style: none; /* IE and old Edge */
+}
+
 .help-content::-webkit-scrollbar {
-	width: 6px;
-}
-
-.help-content::-webkit-scrollbar-track {
-	background: rgba(255, 255, 255, 0.06);
-	border-radius: 3px;
-}
-
-.help-content::-webkit-scrollbar-thumb {
-	background: rgba(255, 255, 255, 0.2);
-	border-radius: 3px;
-}
-
-.help-content::-webkit-scrollbar-thumb:hover {
-	background: rgba(255, 255, 255, 0.32);
+	display: none;
+	width: 0;
+	height: 0;
 }
 
 .login-container {
@@ -387,6 +383,46 @@ body.login-page::after {
 	color: #6ec5ff;
 }
 
+/* Autofilled fields from share links — context-aware backgrounds */
+/* 从分享链接自动填充的字段——按场景适配背景 */
+.flip-card .input-group input.autofilled {
+	background: rgba(255, 255, 255, 0.16) !important;
+}
+
+.login-modal .input-group input.autofilled {
+	background: #f5f5f5 !important;
+}
+
+.flip-card .input-group input.autofilled-plain {
+	background: rgba(255, 193, 7, 0.16) !important;
+}
+
+.login-modal .input-group input.autofilled-plain {
+	background: #fff9e6 !important;
+}
+
+/* Validation error state — context-aware backgrounds */
+/* 校验错误状态——按场景适配背景 */
+.input-group input.input-error {
+	border-color: #e74c3c !important;
+}
+
+.flip-card .input-group input.input-error {
+	background: rgba(231, 76, 60, 0.14) !important;
+	color: #fff !important;
+}
+
+.login-modal .input-group input.input-error {
+	background: #fff6f6 !important;
+}
+
+.input-error-tip {
+	color: #e74c3c;
+	font-size: 13px;
+	margin-top: 4px;
+	text-align: left;
+}
+
 .login-btn {
 	margin-top: 18px;
 	background: linear-gradient(135deg, #30a8f7, #7c5dfa);
@@ -416,6 +452,95 @@ body.login-page::after {
 	opacity: 0.65;
 	cursor: not-allowed;
 	transform: none;
+}
+
+/* ===== Invite mode (share link) ===== */
+/* 邀请模式（分享链接） */
+.invite-summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	border-radius: 12px;
+	padding: 10px 14px;
+	text-align: left;
+}
+
+.invite-room {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.invite-room .label {
+	font-size: 0.72rem;
+	color: rgba(255, 255, 255, 0.5);
+	letter-spacing: 0.4px;
+}
+
+.invite-room .name {
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: #fff;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.invite-badge {
+	flex-shrink: 0;
+	font-size: 0.75rem;
+	line-height: 1;
+	padding: 6px 10px;
+	border-radius: 999px;
+	background: rgba(48, 168, 247, 0.16);
+	border: 1px solid rgba(48, 168, 247, 0.4);
+	color: #9fd8ff;
+	white-space: nowrap;
+}
+
+.invite-badge.lock {
+	background: rgba(46, 204, 113, 0.14);
+	border-color: rgba(46, 204, 113, 0.38);
+	color: #9fe9bd;
+}
+
+.invite-badge.warn {
+	background: rgba(255, 193, 7, 0.14);
+	border-color: rgba(255, 193, 7, 0.38);
+	color: #ffdf8a;
+}
+
+.invite-note {
+	margin: 0;
+	font-size: 0.8rem;
+	color: rgba(255, 255, 255, 0.55);
+	line-height: 1.5;
+}
+
+.form-error-slot {
+	color: #ff7b72;
+	font-size: 13px;
+	min-height: 18px;
+	line-height: 1.4;
+}
+
+.invite-manual {
+	background: none;
+	border: none;
+	padding: 4px 8px;
+	color: rgba(255, 255, 255, 0.45);
+	font-size: 0.82rem;
+	cursor: pointer;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	transition: color 0.2s ease;
+}
+
+.invite-manual:hover {
+	color: #6ec5ff;
 }
 
 .login-modal {
@@ -449,8 +574,16 @@ body.login-page::after {
 	box-shadow: 0 2px 16px rgba(60, 80, 100, 0.13);
 	padding: 32px 24px 24px 24px;
 	min-width: 200px;
-	width: 400px;
+	width: min(400px, calc(100vw - 40px));
 	text-align: center;
+	box-sizing: border-box;
+}
+
+.login-modal-card h1 {
+	font-size: 1.45rem;
+	font-weight: 700;
+	margin: 0 0 20px;
+	color: #1f2937;
 }
 
 .login-modal-card form {
@@ -602,11 +735,6 @@ body.login-page::after {
 	margin-left: 25px;
 }
 
-.icon-22 {
-	width: 22px;
-	height: 22px;
-}
-
 .input-hidden {
 	display: none;
 }
@@ -749,4 +877,48 @@ body.login-page::after {
 .new-message-wrapper {
   position: relative;
   z-index: 1;
+}
+
+/* Short viewports: cap the login card height and compress spacing */
+/* 矮屏幕：限制登录卡片高度并压缩间距 */
+@media (max-height: 640px) {
+	.flip-card {
+		height: min(520px, calc(100dvh - 24px));
+	}
+
+	.flip-card-front,
+	.flip-card-back {
+		padding: 26px 22px 14px;
+	}
+
+	.login-brand {
+		margin-bottom: 10px;
+	}
+
+	.login-logo {
+		width: 50px;
+		height: 50px;
+		margin-bottom: 8px;
+	}
+
+	.login-container h1 {
+		font-size: 1.4rem;
+	}
+
+	.login-container form {
+		gap: 8px;
+	}
+
+	.input-group {
+		margin-bottom: 6px;
+	}
+
+	.input-group input {
+		padding: 11px 14px;
+	}
+
+	.login-btn {
+		margin-top: 10px;
+		padding: 12px 0;
+	}
 }

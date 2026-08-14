@@ -7,11 +7,13 @@ import {
 import {
 	renderChatArea,
 	addSystemMsg,
-	updateChatInputStyle
+	updateChatInputStyle,
+	updateMessageStatus
 } from './chat.js';
 import {
 	renderMainHeader,
-	renderUserList
+	renderUserList,
+	updateMembersCount
 } from './ui.js';
 import {
 	escapeHTML
@@ -40,8 +42,22 @@ export function getNewRoomData() {
 		knownUserIds: new Set(),
 		unreadCount: 0,
 		privateChatTargetId: null,
-		privateChatTargetName: null
+		privateChatTargetName: null,
+		emptyRoomNoticeShown: false,
+		receiptedMessageIds: new Set()
 	}
+}
+
+// Update the document title with the total unread badge
+// 更新标题栏：未读总数显示为角标
+function updateDocumentTitle() {
+	let total = 0;
+	for (const rd of roomsData) {
+		if (typeof rd.unreadCount === 'number') total += rd.unreadCount;
+	}
+	const rd = roomsData[activeRoomIndex];
+	const base = rd && rd.roomName ? '#' + rd.roomName : 'NodeCrypt';
+	document.title = total > 0 ? `(${total}) ${base}` : base;
 }
 
 // Switch to another room by index
@@ -58,8 +74,73 @@ export function switchRoom(index) {
 	renderMainHeader();
 	renderUserList(false);
 	renderChatArea();
-	updateChatInputStyle()
+	updateChatInputStyle();
+	updateDocumentTitle();
+	// Send read receipts for messages received while this room was inactive
+	// 为之前在后台收到的消息补发已读回执
+	rd.messages.forEach(m => {
+		if (m.type === 'other' && m.id && m.clientId) {
+			sendReadReceiptForMessage(rd, { id: m.id, clientId: m.clientId });
+		}
+	})
 }
+
+// Send a read receipt for a received message (once per message)
+// 为收到的消息发送已读回执（每条仅一次）
+function sendReadReceiptForMessage(rd, msg) {
+	if (!rd || !msg || !msg.id || !msg.clientId || !rd.chat) return;
+	if (!rd.receiptedMessageIds) rd.receiptedMessageIds = new Set();
+	if (rd.receiptedMessageIds.has(msg.id)) return;
+	rd.receiptedMessageIds.add(msg.id);
+	try {
+		rd.chat.sendReadReceipt(msg.clientId, msg.id);
+	} catch (error) {
+		console.warn('sendReadReceipt failed:', error);
+	}
+}
+
+// Whether the user is actually looking at this window right now
+// 用户当前是否真的在看这个窗口（可见且聚焦）
+export function isUserViewing() {
+	return document.visibilityState === 'visible' && document.hasFocus();
+}
+
+// Flush read receipts for the active room when the user returns to the window
+// 用户回到窗口时，为当前房间补发已读回执
+// Flush read receipts for the active room when the user interacts with it.
+// requireFocus=true 用于"回到窗口"类事件（可见且聚焦才算在看）；
+// requireFocus=false 用于滚轮/触摸滚动——滚动一个可见（即使未聚焦）的
+// 窗口本身就是主动阅读消息的行为，Windows 上滚轮不会给窗口焦点。
+function flushReadReceipts(requireFocus) {
+	const viewing = document.visibilityState === 'visible' && (!requireFocus || document.hasFocus());
+	if (!viewing) return;
+	const rd = roomsData[activeRoomIndex];
+	if (!rd) return;
+	rd.messages.forEach(m => {
+		if (m.type === 'other' && m.id && m.clientId) {
+			sendReadReceiptForMessage(rd, { id: m.id, clientId: m.clientId });
+		}
+	});
+}
+
+// Bind visibility/focus/interaction handlers once: receipts are only sent when
+// the recipient is actually looking at the chat. Minimized or unfocused windows
+// hold receipts until the user comes back or actively scrolls the messages.
+// 绑定可见性/焦点/交互处理（仅一次）：只有接收方真的在看聊天时才发回执；
+// 窗口最小化时先扣着，用户回到窗口（聚焦/点击）或主动滑动消息时再补发。
+let readReceiptVisibilityBound = false;
+function bindReadReceiptVisibility() {
+	if (readReceiptVisibilityBound) return;
+	readReceiptVisibilityBound = true;
+	window.addEventListener('visibilitychange', () => flushReadReceipts(true));
+	window.addEventListener('focus', () => flushReadReceipts(true));
+	document.addEventListener('pointerdown', () => flushReadReceipts(true), { passive: true, capture: true });
+	// 滚轮 / 触摸滑动消息 = 主动阅读：窗口可见即可，不要求焦点
+	// Wheel / touch scrolling counts as actively reading: only visibility required
+	document.addEventListener('wheel', () => flushReadReceipts(false), { passive: true, capture: true });
+	document.addEventListener('touchmove', () => flushReadReceipts(false), { passive: true, capture: true });
+}
+bindReadReceiptVisibility();
 
 // Set the sidebar avatar
 // 设置侧边栏头像
@@ -83,6 +164,15 @@ export function renderRooms(activeId = 0) {
 			class: 'room' + (i === activeId ? ' active' : ''),
 			onclick: () => switchRoom(i)
 		});
+		div.setAttribute('role', 'button');
+		div.setAttribute('tabindex', '0');
+		div.setAttribute('aria-label', '#' + rd.roomName);
+		div.onkeydown = (e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				switchRoom(i);
+			}
+		};
 		const safeRoomName = escapeHTML(rd.roomName);
 		let unreadHtml = '';
 		if (rd.unreadCount && i !== activeId) {
@@ -149,12 +239,34 @@ export function joinRoom(userName, roomName, password, modal = null, onResult) {
 		onClientSecured: (user) => handleClientSecured(idx, user),
 		onClientList: (list, selfId) => handleClientList(idx, list, selfId),
 		onClientLeft: (clientId) => handleClientLeft(idx, clientId),
-		onClientMessage: (msg) => handleClientMessage(idx, msg)
+		onClientMessage: (msg) => handleClientMessage(idx, msg),
+		onReadReceipt: (receipt) => handleReadReceipt(idx, receipt),
+		onServerKeyChanged: () => handleServerKeyChanged(idx)
 	};
 	const chatInst = new window.NodeCrypt(window.config, callbacks);
 	chatInst.setCredentials(userName, roomName, password);
 	chatInst.connect();
 	roomsData[idx].chat = chatInst
+}
+
+// Handle a read receipt from another client
+// 处理其他客户端发来的已读回执
+export function handleReadReceipt(idx, receipt) {
+	if (!receipt || !receipt.messageId) return;
+	updateMessageStatus(receipt.messageId, 'read');
+}
+
+// Warn when the server's public key differs from the previously seen one
+// 服务器公钥与之前不同时提示（可能重新部署，也可能是中间人）
+export function handleServerKeyChanged(idx) {
+	const rd = roomsData[idx];
+	if (!rd) return;
+	const msg = t('system.server_key_changed', '⚠️ The server encryption key changed since your last visit — if you did not expect this, avoid sharing sensitive info.');
+	rd.messages.push({
+		type: 'system',
+		text: msg
+	});
+	if (activeRoomIndex === idx) addSystemMsg(msg, true);
 }
 
 // Handle the client list update
@@ -177,7 +289,7 @@ export function handleClientList(idx, list, selfId) {
 	rd.myId = selfId;
 	if (activeRoomIndex === idx) {
 		renderUserList(false);
-		renderMainHeader()
+		updateMembersCount()
 	}
 	rd.initCount = (rd.initCount || 0) + 1;
 	if (rd.initCount === 2) {
@@ -200,7 +312,7 @@ export function handleClientSecured(idx, user) {
 	}
 	if (activeRoomIndex === idx) {
 		renderUserList(false);
-		renderMainHeader()
+		updateMembersCount()
 	}
 	if (!rd.isInitialized) {
 		return
@@ -245,7 +357,7 @@ export function handleClientLeft(idx, clientId) {
 	delete rd.userMap[clientId];
 	if (activeRoomIndex === idx) {
 		renderUserList(false);
-		renderMainHeader()
+		updateMembersCount()
 	}
 }
 
@@ -315,6 +427,7 @@ export function handleClientMessage(idx, msg) {
 			if (msgType === 'file_start' || msgType === 'file_start_private') {
 				newRd.unreadCount = (newRd.unreadCount || 0) + 1;
 				renderRooms(activeRoomIndex);
+				updateDocumentTitle();
 			}
 		}
 		return; // File messages are fully handled.
@@ -343,7 +456,9 @@ export function handleClientMessage(idx, msg) {
 		userName: realUserName,
 		avatar: realUserName,
 		msgType: msgType,
-		timestamp: Date.now()
+		timestamp: Date.now(),
+		id: msg.id || null,
+		clientId: msg.clientId || null
 	});
 
 	// Only add message to chat display if it's for the active room
@@ -351,9 +466,16 @@ export function handleClientMessage(idx, msg) {
 		if (window.addOtherMsg) {
 			window.addOtherMsg(msg.data, realUserName, realUserName, false, msgType);
 		}
+		// Only acknowledge immediately if the user is actually looking at
+		// this window; otherwise the receipt waits until they come back.
+		// 只有用户真的在看这个窗口时才立即回执；否则等用户回到窗口再补发。
+		if (isUserViewing()) {
+			sendReadReceiptForMessage(newRd, msg);
+		}
 	} else {
 		roomsData[idx].unreadCount = (roomsData[idx].unreadCount || 0) + 1;
 		renderRooms(activeRoomIndex);
+		updateDocumentTitle();
 	}
 
 	const notificationMsgType = msgType.includes('_private') ? `private ${msgType.split('_')[0]}` : msgType;
@@ -396,6 +518,7 @@ export function exitRoom() {
 			switchRoom(0);
 			return true
 		} else {
+			updateDocumentTitle();
 			return false
 		}
 	}

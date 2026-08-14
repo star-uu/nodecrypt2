@@ -148,6 +148,9 @@ function handleShareAction() {
 	}
 	
 	copyToClipboard(url, t('action.share_copied', 'Share link copied!'), t('action.copy_url_failed', 'Copy failed, url:'));
+	// 提醒：链接包含房间与密码信息，谁拿到链接就能进入房间
+	// Reminder: the link carries the room credentials — anyone with it can join
+	window.addSystemMsg && window.addSystemMsg(t('system.share_link_warning', '⚠️ Anyone with this link can join the room — share it only with trusted people.'), true);
 }
 
 // Handle exit action
@@ -175,9 +178,22 @@ export function renderMainHeader() {
 		onlineCount += 1
 	}
 	const safeRoomName = escapeHTML(roomName);
-	$id("main-header").innerHTML = `<button class="mobile-menu-btn"id="mobile-menu-btn"aria-label="Open Sidebar"><svg width="35px"height="35px"viewBox="0 0 24 24"fill="none"xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier"stroke-width="0"></g><g id="SVGRepo_tracerCarrier"stroke-linecap="round"stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path fill-rule="evenodd"clip-rule="evenodd"d="M21.4498 10.275L11.9998 3.1875L2.5498 10.275L2.9998 11.625H3.7498V20.25H20.2498V11.625H20.9998L21.4498 10.275ZM5.2498 18.75V10.125L11.9998 5.0625L18.7498 10.125V18.75H14.9999V14.3333L14.2499 13.5833H9.74988L8.99988 14.3333V18.75H5.2498ZM10.4999 18.75H13.4999V15.0833H10.4999V18.75Z"fill="#808080"></path></g></svg></button><div class="main-header-center"id="main-header-center"><div class="main-header-flex"><div class="group-title group-title-bold">#${safeRoomName}</div><span class="main-header-members">${onlineCount} ${t('ui.members', 'members')}</span></div></div><div class="main-header-actions"><button class="more-btn"id="more-btn"aria-label="More Options"><svg width="35px"height="35px"viewBox="0 0 24 24"fill="none"xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier"stroke-width="0"></g><g id="SVGRepo_tracerCarrier"stroke-linecap="round"stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><circle cx="12"cy="6"r="1.5"fill="#808080"></circle><circle cx="12"cy="12"r="1.5"fill="#808080"></circle><circle cx="12"cy="18"r="1.5"fill="#808080"></circle></g></svg></button><button class="mobile-info-btn"id="mobile-info-btn"aria-label="Open Members"><svg width="35px"height="35px"viewBox="0 0 24 24"fill="none"xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier"stroke-width="0"></g><g id="SVGRepo_tracerCarrier"stroke-linecap="round"stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path fill-rule="evenodd"clip-rule="evenodd"d="M16.0603 18.307C14.89 19.0619 13.4962 19.5 12 19.5C10.5038 19.5 9.10996 19.0619 7.93972 18.307C8.66519 16.7938 10.2115 15.75 12 15.75C13.7886 15.75 15.3349 16.794 16.0603 18.307ZM17.2545 17.3516C16.2326 15.5027 14.2632 14.25 12 14.25C9.73663 14.25 7.76733 15.5029 6.74545 17.3516C5.3596 15.9907 4.5 14.0958 4.5 12C4.5 7.85786 7.85786 4.5 12 4.5C16.1421 4.5 19.5 7.85786 19.5 12C19.5 14.0958 18.6404 15.9908 17.2545 17.3516ZM21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12ZM12 12C13.2426 12 14.25 10.9926 14.25 9.75C14.25 8.50736 13.2426 7.5 12 7.5C10.7574 7.5 9.75 8.50736 9.75 9.75C9.75 10.9926 10.7574 12 12 12ZM12 13.5C14.0711 13.5 15.75 11.8211 15.75 9.75C15.75 7.67893 14.0711 6 12 6C9.92893 6 8.25 7.67893 8.25 9.75C8.25 11.8211 9.92893 13.5 12 13.5Z"fill="#808080"></path></g></svg></button><div class="more-menu"id="more-menu"><div class="more-menu-item"data-action="share">${t('action.share', 'Share')}</div><div class="more-menu-item"data-action="exit">${t('action.exit', 'Quit')}</div></div></div>`;
+	$id("main-header").innerHTML = `<button class="mobile-menu-btn"id="mobile-menu-btn"aria-label="Open Sidebar"><svg width="35px"height="35px"viewBox="0 0 24 24"fill="none"xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier"stroke-width="0"></g><g id="SVGRepo_tracerCarrier"stroke-linecap="round"stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path fill-rule="evenodd"clip-rule="evenodd"d="M21.4498 10.275L11.9998 3.1875L2.5498 10.275L2.9998 11.625H3.7498V20.25H20.2498V11.625H20.9998L21.4498 10.275ZM5.2498 18.75V10.125L11.9998 5.0625L18.7498 10.125V18.75H14.9999V14.3333L14.2499 13.5833H9.74988L8.99988 14.3333V18.75H5.2498ZM10.4999 18.75H13.4999V15.0833H10.4999V18.75Z"fill="#808080"></path></g></svg></button><div class="main-header-center"id="main-header-center"><div class="main-header-flex"><div class="group-title group-title-bold">#${safeRoomName}</div><span class="main-header-members">${onlineCount} ${t('ui.members', 'members')}</span></div></div><div class="main-header-actions"><button class="more-btn"id="more-btn"aria-label="More Options"><svg width="30px"height="30px"viewBox="0 0 24 24"fill="none"xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier"stroke-width="0"></g><g id="SVGRepo_tracerCarrier"stroke-linecap="round"stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><circle cx="12"cy="6"r="1.5"fill="#808080"></circle><circle cx="12"cy="12"r="1.5"fill="#808080"></circle><circle cx="12"cy="18"r="1.5"fill="#808080"></circle></g></svg></button><button class="mobile-info-btn"id="mobile-info-btn"aria-label="Open Members"><svg width="35px"height="35px"viewBox="0 0 24 24"fill="none"xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier"stroke-width="0"></g><g id="SVGRepo_tracerCarrier"stroke-linecap="round"stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path fill-rule="evenodd"clip-rule="evenodd"d="M16.0603 18.307C14.89 19.0619 13.4962 19.5 12 19.5C10.5038 19.5 9.10996 19.0619 7.93972 18.307C8.66519 16.7938 10.2115 15.75 12 15.75C13.7886 15.75 15.3349 16.794 16.0603 18.307ZM17.2545 17.3516C16.2326 15.5027 14.2632 14.25 12 14.25C9.73663 14.25 7.76733 15.5029 6.74545 17.3516C5.3596 15.9907 4.5 14.0958 4.5 12C4.5 7.85786 7.85786 4.5 12 4.5C16.1421 4.5 19.5 7.85786 19.5 12C19.5 14.0958 18.6404 15.9908 17.2545 17.3516ZM21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12ZM12 12C13.2426 12 14.25 10.9926 14.25 9.75C14.25 8.50736 13.2426 7.5 12 7.5C10.7574 7.5 9.75 8.50736 9.75 9.75C9.75 10.9926 10.7574 12 12 12ZM12 13.5C14.0711 13.5 15.75 11.8211 15.75 9.75C15.75 7.67893 14.0711 6 12 6C9.92893 6 8.25 7.67893 8.25 9.75C8.25 11.8211 9.92893 13.5 12 13.5Z"fill="#808080"></path></g></svg></button><div class="more-menu"id="more-menu"><div class="more-menu-item"data-action="share">${t('action.share', 'Share')}</div><div class="more-menu-item"data-action="exit">${t('action.exit', 'Quit')}</div></div></div>`;
 	setupMoreBtnMenu();
 	setupMobileUIHandlers()
+}
+
+// Update only the online-members count text without rebuilding the header
+// 只更新在线人数文字，不重建整个头部（避免成员变动时整块重绘）
+export function updateMembersCount() {
+	const el = document.querySelector('.main-header-members');
+	if (!el) return;
+	const rd = roomsData[activeRoomIndex];
+	let onlineCount = rd && rd.userList ? rd.userList.length : 0;
+	if (rd && !rd.userList.some(u => u.clientId === rd.myId)) {
+		onlineCount += 1
+	}
+	el.textContent = `${onlineCount} ${t('ui.members', 'members')}`
 }
 
 // Setup mobile UI event handlers
@@ -375,6 +391,15 @@ export function createUserItem(user, isMe) {
 	}
 	if (!isMe) {
 		div.onclick = () => togglePrivateChat(user.clientId, safeUserName)
+		div.setAttribute('role', 'button');
+		div.setAttribute('tabindex', '0');
+		div.setAttribute('aria-label', `${t('ui.start_private_chat', 'Start private chat with')} ${safeUserName}`);
+		div.onkeydown = (e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				togglePrivateChat(user.clientId, safeUserName);
+			}
+		};
 		// Add a voice call button (stops propagation so private chat is not toggled)
 		// 添加语音通话按钮（阻止冒泡，避免触发私聊切换）
 		const callBtn = document.createElement('button');
@@ -400,8 +425,21 @@ let moreMenuDocumentBound = false;
 
 export function setupMoreBtnMenu() {
 	const btn = $id('more-btn');
-	const menu = $id('more-menu');
-	if (!btn || !menu) return;
+	let menu = $id('more-menu');
+	if (!btn) return;
+
+	// The menu is created on demand (the header template does not render it)
+	// 菜单按需创建（头部模板不渲染它）
+	if (!menu) {
+		menu = document.createElement('div');
+		menu.id = 'more-menu';
+		menu.className = 'more-menu';
+		menu.innerHTML = `
+			<div class="more-menu-item" data-action="share" role="button" tabindex="0">${t('action.share', 'Share')}</div>
+			<div class="more-menu-item" data-action="exit" role="button" tabindex="0">${t('action.exit', 'Exit')}</div>
+		`;
+		btn.parentNode.appendChild(menu);
+	}
 
 	function openMenu() {
 		menu.style.display = 'block';
@@ -429,9 +467,21 @@ export function setupMoreBtnMenu() {
 	};
 
 	menu.onclick = function(e) {
-		if (e.target.classList.contains('more-menu-item')) {
-			const action = e.target.dataset.action;
+		const item = e.target.closest('.more-menu-item');
+		if (item) {
+			const action = item.dataset.action;
 			executeMenuAction(action, closeMenu);
+		}
+	};
+
+	// Keyboard support for menu items
+	// 菜单项键盘支持
+	menu.onkeydown = function(e) {
+		if (e.key !== 'Enter' && e.key !== ' ') return;
+		const item = e.target.closest('.more-menu-item');
+		if (item) {
+			e.preventDefault();
+			executeMenuAction(item.dataset.action, closeMenu);
 		}
 	};
 
@@ -468,52 +518,75 @@ export function preventSpaceInput(input) {
 	})
 }
 
+// Show/clear validation error state on a room input
+// 显示/清除房间输入框的校验错误状态
+function showInputError(input, message) {
+	if (!input) return;
+	clearInputError(input);
+	input.classList.add('input-error');
+	const warnTip = document.createElement('div');
+	warnTip.className = 'input-error-tip';
+	warnTip.textContent = message;
+	input.parentNode.appendChild(warnTip);
+	input._warnTip = warnTip;
+}
+
+function clearInputError(input) {
+	if (!input) return;
+	input.classList.remove('input-error');
+	if (input._warnTip) {
+		input.parentNode.removeChild(input._warnTip);
+		input._warnTip = null;
+	}
+}
+
 // Login form submit handler
 // 登录表单提交处理函数
 export function loginFormHandler(modal) {
 	return function(e) {
 		e.preventDefault();
-		let userName, roomName, password, btn, roomInput, warnTip;
+		let userName, roomName, password, btn, roomInput, formEl;
 		if (modal) {
 			userName = document.getElementById('userName-modal').value.trim();
 			roomName = document.getElementById('roomName-modal').value.trim();
-			password = document.getElementById('password-modal').value.trim();
+			password = document.getElementById('password-modal').value; // 密码不 trim，允许空格等字符 / Password untrimmed
 			btn = modal.querySelector('.login-btn');
-			roomInput = document.getElementById('roomName-modal')
+			roomInput = document.getElementById('roomName-modal');
+			formEl = modal.querySelector('form');
 		} else {
 			userName = document.getElementById('userName').value.trim();
 			roomName = document.getElementById('roomName').value.trim();
-			password = document.getElementById('password').value.trim();
+			password = document.getElementById('password').value; // 密码不 trim，允许空格等字符 / Password untrimmed
 			btn = document.querySelector('#login-form .login-btn');
-			roomInput = document.getElementById('roomName')
+			roomInput = document.getElementById('roomName');
+			formEl = document.getElementById('login-form');
 		}
-		const exists = roomsData.some(rd => rd.roomName && rd.roomName.toLowerCase() === roomName.toLowerCase());
-		if (roomInput) {
-			roomInput.style.border = '';
-			roomInput.style.background = '';
-			if (roomInput._warnTip) {
-				roomInput.parentNode.removeChild(roomInput._warnTip);
-				roomInput._warnTip = null
+		// 邀请模式下房间号是隐藏字段，错误信息显示在表单的错误槽里
+		// In invite mode the room input is hidden: show errors in the form error slot
+		const errorSlot = formEl ? formEl.querySelector('.form-error-slot') : null;
+		const clearError = () => {
+			if (errorSlot) errorSlot.textContent = '';
+			clearInputError(roomInput);
+		};
+		const showError = (message) => {
+			if (errorSlot) {
+				errorSlot.textContent = message;
+			} else {
+				showInputError(roomInput, message);
 			}
-		}
+		};
+		const exists = roomsData.some(rd => rd.roomName && rd.roomName.toLowerCase() === roomName.toLowerCase());
+		clearError();
 		if (exists) {
-			if (roomInput) {
-				roomInput.style.border = '1.5px solid #e74c3c';
-				roomInput.style.background = '#fff6f6';
-				warnTip = document.createElement('div');
-				warnTip.style.color = '#e74c3c';
-				warnTip.style.fontSize = '13px';
-				warnTip.style.marginTop = '4px';
-				warnTip.textContent = t('ui.node_exists', 'Room already exists');
-				roomInput.parentNode.appendChild(warnTip);
-				roomInput._warnTip = warnTip;
-				roomInput.focus()
-			}			if (btn) {
+			showError(t('ui.node_exists', 'Room already exists'));
+			if (roomInput && roomInput.type !== 'hidden') roomInput.focus();
+			if (btn) {
 				btn.disabled = false;
 				btn.innerText = t('ui.enter', 'ENTER')
 			}
 			return
-		}		if (btn) {
+		}
+		if (btn) {
 			btn.disabled = true;
 			btn.innerText = t('ui.connecting', 'Connecting...')
 		}
@@ -521,16 +594,7 @@ export function loginFormHandler(modal) {
 			if (!success && btn) {
 				btn.disabled = false;
 				btn.innerText = t('ui.enter', 'ENTER');
-				if (roomInput) {
-					roomInput.style.border = '1.5px solid #e74c3c';
-					warnTip = document.createElement('div');
-					warnTip.style.color = '#e74c3c';
-					warnTip.style.fontSize = '13px';
-					warnTip.style.marginTop = '4px';
-					warnTip.textContent = t('ui.connect_failed', 'Connection failed, please try again');
-					roomInput.parentNode.appendChild(warnTip);
-					roomInput._warnTip = warnTip
-				}
+				showError(t('ui.connect_failed', 'Connection failed, please try again'));
 			}
 		})
 	}
@@ -549,7 +613,7 @@ export function generateLoginForm(isModal = false) {
 			<label for="roomName${idPrefix}" class="floating-label">${t('ui.node_name', 'Room Name')}</label>
 		</div>
 		<div class="input-group">
-			<input id="password${idPrefix}" type="password" autocomplete="${isModal ? 'off' : 'current-password'}" minlength="1" maxlength="15" placeholder="">
+			<input id="password${idPrefix}" type="password" autocomplete="${isModal ? 'off' : 'current-password'}" minlength="1" maxlength="64" placeholder="">
 			<label for="password${idPrefix}" class="floating-label">${t('ui.node_password', 'Room Password')} <span class="optional">${t('ui.optional', '(optional)')}</span></label>
 		</div>
 		<button type="submit" class="login-btn">${t('ui.enter', 'ENTER')}</button>
@@ -563,21 +627,11 @@ export function openLoginModal() {
 	modal.querySelector('.login-modal-close').onclick = () => modal.remove();
 	preventSpaceInput(modal.querySelector('#userName-modal'));
 	preventSpaceInput(modal.querySelector('#roomName-modal'));
-	preventSpaceInput(modal.querySelector('#password-modal'));	const form = modal.querySelector('#login-form-modal');
+	// 密码允许任意字符，不做空格过滤
+	// Password accepts any characters — no filtering
+	const form = modal.querySelector('#login-form-modal');
 	form.addEventListener('submit', loginFormHandler(modal));
 	autofillRoomPwd('-modal')
-}
-
-// Setup member list tabs
-// 设置成员列表标签页
-export function setupTabs() {
-	const tabs = document.getElementById("member-tabs").children;
-	for (let i = 0; i < tabs.length; i++) {
-		tabs[i].onclick = function() {
-			for (let j = 0; j < tabs.length; j++) tabs[j].classList.remove("active");
-			this.classList.add("active")
-		}
-	}
 }
 
 // Autofill room and password from URL
@@ -616,24 +670,26 @@ export function autofillRoomPwd(formPrefix = '') {
 			window.addSystemMsg(t('system.security_warning', '⚠️ This link uses an old format. Room data is not encrypted.'), true);
 		}
 	}
-		// Fill in the form fields
+	// Fill in the form fields
 	if (roomValue) {
 		const roomInput = document.getElementById(formPrefix + 'roomName');
 		if (roomInput) {
 			roomInput.value = roomValue;
 			roomInput.readOnly = true;
-			roomInput.style.background = isPlaintext ? '#fff9e6' : '#f5f5f5'; // Yellow tint for plaintext
+			roomInput.classList.remove('autofilled', 'autofilled-plain');
+			roomInput.classList.add(isPlaintext ? 'autofilled-plain' : 'autofilled');
 		}
-				// Always lock password field when coming from a share link
+		// Always lock password field when coming from a share link
 		const pwdInput = document.getElementById(formPrefix + 'password');
 		if (pwdInput) {
 			pwdInput.value = pwdValue; // Will be empty string if no password
 			pwdInput.readOnly = true;
-			pwdInput.style.background = isPlaintext ? '#fff9e6' : '#f5f5f5'; // Yellow tint for plaintext
-			
+			pwdInput.classList.remove('autofilled', 'autofilled-plain');
+			pwdInput.classList.add(isPlaintext ? 'autofilled-plain' : 'autofilled');
+
 			// Add visual indicator for no password and keep label floating
 			if (!pwdValue) {
-				pwdInput.placeholder = 'No password required';
+				pwdInput.placeholder = t('file.no_password_required', 'No password required');
 				// Add a space to make the input appear "filled" so the label stays floating
 				pwdInput.value = ' ';
 				// Make the text invisible but keep the label floating behavior
@@ -649,15 +705,113 @@ export function autofillRoomPwd(formPrefix = '') {
 }
 
 // 初始化登录表单
+// Parse room/password from a share link (returns null when no invite present)
+// 从分享链接解析房间名/密码（无邀请参数时返回 null）
+export function parseInviteParams() {
+	const params = new URLSearchParams(window.location.search);
+	const encryptedRoom = params.get('r');
+	const encryptedPwd = params.get('p');
+	const plaintextRoom = params.get('node');
+	const plaintextPwd = params.get('pwd');
+	if (encryptedRoom) {
+		return {
+			roomValue: simpleDecrypt(decodeURIComponent(encryptedRoom)),
+			pwdValue: encryptedPwd ? simpleDecrypt(decodeURIComponent(encryptedPwd)) : '',
+			isPlaintext: false
+		};
+	}
+	if (plaintextRoom) {
+		return {
+			roomValue: decodeURIComponent(plaintextRoom),
+			pwdValue: plaintextPwd ? decodeURIComponent(plaintextPwd) : '',
+			isPlaintext: true
+		};
+	}
+	return null;
+}
+
+// Build the invite-mode login form: room info becomes a read-only summary,
+// the user only enters their nickname and presses the big join button.
+// 构建邀请模式登录表单：房间信息变成只读摘要，用户只需填写昵称并点击大按钮。
+export function initInviteForm() {
+	const container = document.getElementById('login-form');
+	if (!container) return;
+	const invite = parseInviteParams();
+	if (!invite) {
+		container.innerHTML = generateLoginForm(false);
+		return;
+	}
+	const roomName = invite.roomValue || '';
+	const hasPwd = invite.pwdValue !== '';
+	let badge = `<span class="invite-badge">${t('ui.invite_no_password', 'No password')}</span>`;
+	if (invite.isPlaintext) {
+		badge = `<span class="invite-badge warn">${t('ui.invite_old_link', '⚠️ Old format link')}</span>`;
+	} else if (hasPwd) {
+		badge = `<span class="invite-badge lock">${t('ui.invite_password_filled', '🔒 Password filled')}</span>`;
+	}
+	container.innerHTML = `
+		<div class="invite-summary">
+			<div class="invite-room">
+				<span class="label">${t('ui.invite_room_label', 'Room')}</span>
+				<span class="name">#${escapeHTML(roomName)}</span>
+			</div>
+			${badge}
+		</div>
+		<p class="invite-note">${t('ui.invite_note', 'Room info comes from the invite link — just set your nickname')}</p>
+		<input type="hidden" id="roomName" value="${escapeHTML(roomName)}">
+		<input type="hidden" id="password" value="${escapeHTML(invite.pwdValue)}">
+		<div class="input-group">
+			<input id="userName" type="text" autocomplete="username" required minlength="1" maxlength="15" placeholder="">
+			<label for="userName" class="floating-label">${t('ui.username', 'Username')}</label>
+		</div>
+		<button type="submit" class="login-btn">${t('ui.join', 'Join')} #${escapeHTML(roomName)}</button>
+		<div class="form-error-slot" role="alert"></div>
+		<button type="button" class="invite-manual" id="invite-manual">${t('ui.invite_manual', 'Enter room info manually')}</button>
+	`;
+	const manualBtn = document.getElementById('invite-manual');
+	if (manualBtn) {
+		manualBtn.onclick = () => {
+			window.history.replaceState({}, '', location.pathname);
+			container.innerHTML = generateLoginForm(false);
+			preventSpaceInput(document.getElementById('userName'));
+			preventSpaceInput(document.getElementById('roomName'));
+			preventSpaceInput(document.getElementById('password'));
+			const u = document.getElementById('userName');
+			if (u) u.focus();
+		};
+	}
+	// Auto-focus the only editable field so the next step is obvious
+	// 自动聚焦唯一可编辑的昵称框，下一步做什么一目了然
+	setTimeout(() => {
+		const u = document.getElementById('userName');
+		if (u) u.focus();
+	}, 60);
+}
+
 // Initialize login form
 export function initLoginForm() {
 	const loginFormContainer = document.getElementById('login-form');
-	if (loginFormContainer && loginFormContainer.children.length === 0) {
-		// 只有当登录表单为空时才初始化
-		// Only initialize if login form is empty
-		loginFormContainer.innerHTML = generateLoginForm(false);
+	if (loginFormContainer) {
+		if (parseInviteParams()) {
+			// Share link: compact invite UI (summary + nickname only)
+			// 分享链接：紧凑的邀请界面（摘要 + 仅昵称）
+			initInviteForm();
+		} else if (loginFormContainer.children.length === 0) {
+			// 只有当登录表单为空时才初始化
+			// Only initialize if login form is empty
+			loginFormContainer.innerHTML = generateLoginForm(false);
+		}
 	}
-	
+
+	// 普通登录页也自动聚焦用户名，让新用户知道第一步做什么
+	// Auto-focus the username field on the normal login page too
+	if (!document.querySelector('.invite-summary')) {
+		setTimeout(() => {
+			const u = document.getElementById('userName');
+			if (u && u.type !== 'hidden') u.focus();
+		}, 60);
+	}
+
 	// 为登录页面添加class，用于手机适配
 	// Add class to login page for mobile adaptation
 	document.body.classList.add('login-page');
@@ -678,7 +832,12 @@ window.addEventListener('languageChange', () => {
 // 监听重新生成登录表单事件
 window.addEventListener('regenerateLoginForm', () => {
 	const loginFormContainer = document.getElementById('login-form');
-	if (loginFormContainer) {
+	if (!loginFormContainer) return;
+	if (parseInviteParams()) {
+		// Keep the invite UI when switching language
+		// 切换语言时保持邀请界面
+		initInviteForm();
+	} else {
 		loginFormContainer.innerHTML = generateLoginForm(false);
 	}
 });

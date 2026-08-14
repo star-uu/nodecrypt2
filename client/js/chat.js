@@ -29,6 +29,61 @@ import {
 
 let newMessageCount = 0;
 
+// Date divider state (resets on re-render)
+// 日期分隔线状态（重绘时重置）
+let lastDateKey = null;
+
+// Maximum bubbles kept in the DOM for very long sessions
+// 超长会话时 DOM 中保留的气泡上限
+const MAX_BUBBLES = 400;
+
+function formatDateDivider(ts) {
+	const d = new Date(ts);
+	const now = new Date();
+	const key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+	if (key === lastDateKey) return '';
+	lastDateKey = key;
+	const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+	const startDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+	const dayMs = 86400000;
+	let label;
+	if (startDay === startToday) {
+		label = t('ui.today', 'Today');
+	} else if (startDay === startToday - dayMs) {
+		label = t('ui.yesterday', 'Yesterday');
+	} else {
+		label = (d.getMonth() + 1) + '/' + d.getDate() + (d.getFullYear() !== now.getFullYear() ? '/' + d.getFullYear() : '');
+	}
+	return `<div class="date-divider"><span>${label}</span></div>`;
+}
+
+function appendWithDivider(chatArea, ts, element) {
+	const divider = formatDateDivider(ts);
+	if (divider) chatArea.insertAdjacentHTML('beforeend', divider);
+	chatArea.appendChild(element);
+	enforceBubbleCap(chatArea);
+}
+
+// Keep the DOM bounded; older bubbles stay in history and can be re-shown
+// 控制 DOM 中的气泡数量；更早的消息仍在历史里，可点击重新显示
+function enforceBubbleCap(chatArea) {
+	if (chatArea.childElementCount <= MAX_BUBBLES + 1) return;
+	while (chatArea.childElementCount > MAX_BUBBLES + 1) {
+		chatArea.removeChild(chatArea.firstChild);
+	}
+	ensureEarlierButton(chatArea);
+}
+
+function ensureEarlierButton(chatArea) {
+	if (chatArea.querySelector('.chat-earlier')) return;
+	const btn = createElement('button', {
+		class: 'chat-earlier',
+		type: 'button'
+	}, t('ui.load_earlier', 'Show earlier messages'));
+	btn.onclick = () => renderChatArea(true);
+	chatArea.insertBefore(btn, chatArea.firstChild);
+}
+
 function getNewMessageIndicator() {
 	return $id('new-message-indicator');
 }
@@ -75,39 +130,97 @@ export function setupNewMessageIndicator() {
 
 // Render the chat area
 // 渲染聊天区域
-export function renderChatArea() {
+export function renderChatArea(renderAll = false) {
 	const chatArea = $id('chat-area');
 	if (!chatArea) return;
 	resetNewMessageIndicator();
+	lastDateKey = null;
 	if (activeRoomIndex < 0 || !roomsData[activeRoomIndex]) {
 		chatArea.innerHTML = '';
 		return
 	}
 	chatArea.innerHTML = '';
-	roomsData[activeRoomIndex].messages.forEach(m => {
-		if (m.type === 'me') addMsg(m.text, true, m.msgType || 'text', m.timestamp);
+	const msgs = roomsData[activeRoomIndex].messages;
+	// Very long sessions: render only the latest bubbles; earlier ones
+	// are one click away via the "show earlier messages" button.
+	// 超长会话只渲染最近的气泡，更早的可通过按钮一键显示
+	const toRender = (!renderAll && msgs.length > MAX_BUBBLES) ? msgs.slice(msgs.length - MAX_BUBBLES) : msgs;
+	toRender.forEach(m => {
+		if (m.type === 'me') addMsg(m.text, true, m.msgType || 'text', m.timestamp, {
+			id: m.id,
+			status: m.status
+		});
 		else if (m.type === 'system') addSystemMsg(m.text, true, m.timestamp);
 		else addOtherMsg(m.text, m.userName, m.avatar, true, m.msgType || 'text', m.timestamp)
-	})
+	});
+	if (!renderAll && msgs.length > MAX_BUBBLES) {
+		ensureEarlierButton(chatArea);
+	}
 }
 
 // Add a message to the chat area
 // 添加消息到聊天区域
-export function addMsg(text, isHistory = false, msgType = 'text', timestamp = null) {
+function messageStatusIcon(status) {
+	if (status === 'read') {
+		return `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.8 12.4l4.2 4.2 7.8-8.6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 16.6l4.2 4.2 8.0-8.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+	}
+	if (status === 'failed') {
+		return `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 7v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.2" fill="currentColor"/></svg>`;
+	}
+	return `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.5 12.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+function renderMessageStatus(messageId, status) {
+	if (!messageId || !status) return '';
+	const title = status === 'read'
+		? t('status.read', 'Read')
+		: status === 'failed'
+			? t('status.failed', 'Failed')
+			: t('status.sent', 'Sent');
+	return `<span class="message-status ${status}" data-msg-id="${escapeHTML(messageId)}" title="${title}">${messageStatusIcon(status)}</span>`;
+}
+
+export function updateMessageStatus(messageId, status) {
+	if (!messageId || !status) return;
+	const statusEl = document.querySelector(`[data-msg-id="${messageId}"]`);
+	if (statusEl) {
+		statusEl.className = `message-status ${status}`;
+		statusEl.innerHTML = messageStatusIcon(status);
+		const title = status === 'read'
+			? t('status.read', 'Read')
+			: status === 'failed'
+				? t('status.failed', 'Failed')
+				: t('status.sent', 'Sent');
+		statusEl.title = title;
+	}
+	for (const rd of roomsData) {
+		const message = rd.messages.find(m => m.id === messageId);
+		if (message) message.status = status;
+	}
+}
+
+export function addMsg(text, isHistory = false, msgType = 'text', timestamp = null, meta = {}) {
 	let ts = isHistory ? timestamp : (timestamp || Date.now());
 	if (!ts) return;
+	const messageId = meta.id || null;
+	const status = meta.status || (messageId ? 'sent' : null);
 	if (!isHistory && activeRoomIndex >= 0) {
 		roomsData[activeRoomIndex].messages.push({
 			type: 'me',
 			text,
 			msgType,
-			timestamp: ts
+			timestamp: ts,
+			id: messageId,
+			status
 		})
-	}	const chatArea = $id('chat-area');
+	}
+	const chatArea = $id('chat-area');
 	if (!chatArea) return;
 	let className = 'bubble me' + (msgType.includes('_private') ? ' private-message' : '');
 	const date = new Date(ts);
-	const time = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');	let contentHtml = '';	if (msgType === 'image' || msgType === 'image_private') {
+	const time = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+	let contentHtml = '';
+	if (msgType === 'image' || msgType === 'image_private') {
 		// Handle image messages (can contain both text and images)
 		if (typeof text === 'object' && text.images && Array.isArray(text.images)) {
 			// New multi-image format: {text: "", images: ["data:image...", "data:image..."]}
@@ -157,10 +270,11 @@ export function addMsg(text, isHistory = false, msgType = 'text', timestamp = nu
 	} else {
 		contentHtml = textToHTML(text)
 	}
+	const statusHtml = renderMessageStatus(messageId, status);
 	const div = createElement('div', {
 		class: className
-	}, `<span class="bubble-content">${contentHtml}</span><span class="bubble-meta">${time}</span>`);
-	chatArea.appendChild(div);
+	}, `<span class="bubble-content">${contentHtml}</span><span class="bubble-meta">${time}${statusHtml}</span>`);
+	appendWithDivider(chatArea, ts, div);
 	scrollChatToBottom(chatArea, true);
 }
 
@@ -247,15 +361,15 @@ export function addOtherMsg(msg, userName = '', avatar = '', isHistory = false, 
 		const cleanSvg = svg.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
 		avatarEl.innerHTML = cleanSvg
 	}
-	chatArea.appendChild(bubbleWrap);
+	appendWithDivider(chatArea, ts, bubbleWrap);
 	scrollChatToBottom(chatArea, isHistory);
 }
 
 // Add a system message to the chat area
 // 添加系统消息到聊天区域
 export function addSystemMsg(text, isHistory = false, timestamp = null) {
+	const ts = timestamp || Date.now();
 	if (!isHistory && activeRoomIndex >= 0) {
-		const ts = timestamp || Date.now();
 		roomsData[activeRoomIndex].messages.push({
 			type: 'system',
 			text,
@@ -268,7 +382,7 @@ export function addSystemMsg(text, isHistory = false, timestamp = null) {
 	const div = createElement('div', {
 		class: 'bubble system'
 	}, `<span class="bubble-content">${safeText}</span>`);
-	chatArea.appendChild(div);
+	appendWithDivider(chatArea, ts, div);
 	scrollChatToBottom(chatArea, isHistory);
 }
 
@@ -496,12 +610,12 @@ function renderFileMessage(fileData, isSender) {
 		if (transfer.status === 'sending') {
 			const progress = (transfer.sentVolumes / transfer.totalVolumes) * 100;
 			progressWidth = `${progress}%`;
-			statusText = `Sending ${transfer.sentVolumes}/${transfer.totalVolumes}`;
+			statusText = `${t('file.sending', 'Sending')} ${transfer.sentVolumes}/${transfer.totalVolumes}`;
 			showProgress = true;
 		} else if (transfer.status === 'receiving') {
 			const progress = (transfer.receivedVolumes.size / transfer.totalVolumes) * 100;
 			progressWidth = `${progress}%`;
-			statusText = `Receiving ${transfer.receivedVolumes.size}/${transfer.totalVolumes}`;
+			statusText = `${t('file.receiving', 'Receiving')} ${transfer.receivedVolumes.size}/${transfer.totalVolumes}`;
 			showProgress = true;
 		} else if (transfer.status === 'completed') {
 			// 完成时不显示任何状态，只显示下载按钮
@@ -590,6 +704,13 @@ export function setupInputPlaceholder() {
 
 	function checkEmpty() {
 		const html = input.innerHTML.replace(/<br\s*\/?>(\s*)?/gi, '').replace(/&nbsp;/g, '').replace(/\u200B/g, '').trim();
+		// 自愈：回车发送后，若 IME/浏览器在空输入框里补插了换行等标记（表现为多一空行），立即清掉
+		// Self-heal: if markup was inserted into the input but it contains no
+		// visible text (e.g. a stray newline left by the IME after Enter-send),
+		// clear it so no empty line remains
+		if (input.innerText.trim() === '' && input.innerHTML.trim() !== '') {
+			input.innerHTML = '';
+		}
 		if (html === '') {
 			placeholder.style.opacity = '1'
 		} else {

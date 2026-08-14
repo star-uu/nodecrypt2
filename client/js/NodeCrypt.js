@@ -1,4 +1,4 @@
-﻿// NodeCrypt core cryptographic client for secure chat
+// NodeCrypt core cryptographic client for secure chat
 // NodeCrypt 安全聊天的核心加密客户端
 
 import {
@@ -32,9 +32,11 @@ class NodeCrypt {
 		this.callbacks = {
 			onServerClosed: callbacks.onServerClosed || null,
 			onServerSecured: callbacks.onServerSecured || null,
+			onServerKeyChanged: callbacks.onServerKeyChanged || null,
 			onClientSecured: callbacks.onClientSecured || null,
 			onClientList: callbacks.onClientList || null,
 			onClientMessage: callbacks.onClientMessage || null,
+			onReadReceipt: callbacks.onReadReceipt || null,
 		};
 		this.SERVER_KEY_STORAGE = 'nodecrypt_server_key';
 		try {
@@ -65,6 +67,7 @@ class NodeCrypt {
 		this.stopPing = this.stopPing.bind(this);
 		this.disconnect = this.disconnect.bind(this);
 		this.sendMessage = this.sendMessage.bind(this);
+		this.sendReadReceipt = this.sendReadReceipt.bind(this);
 		this.sendChannelMessage = this.sendChannelMessage.bind(this);
 		this.encryptServerMessage = this.encryptServerMessage.bind(this);
 		this.decryptServerMessage = this.decryptServerMessage.bind(this);
@@ -131,9 +134,11 @@ class NodeCrypt {
 		};
 		this.callbacks.onServerClosed = null;
 		this.callbacks.onServerSecured = null;
+		this.callbacks.onServerKeyChanged = null;
 		this.callbacks.onClientSecured = null;
 		this.callbacks.onClientList = null;
 		this.callbacks.onClientMessage = null;
+		this.callbacks.onReadReceipt = null;
 		this.clientEc = null;
 		this.serverKeys = null;
 		this.serverShared = null;
@@ -332,7 +337,21 @@ class NodeCrypt {
 					}
 				}
 				return
-			}			if (!this.channel[serverDecrypted.c].username) {
+			}
+			if (!this.channel[serverDecrypted.c].username) {
+				return
+			}
+			if (clientDecrypted.a === 'r' && this.isString(clientDecrypted.p)) {
+				if (this.callbacks.onReadReceipt) {
+					try {
+						this.callbacks.onReadReceipt({
+							clientId: serverDecrypted.c,
+							messageId: clientDecrypted.p
+						})
+					} catch (error) {
+						this.logEvent('onMessage-read-receipt-callback', error, 'error')
+					}
+				}
 				return
 			}
 			if (clientDecrypted.a === 'm' && this.isString(clientDecrypted.t) && (this.isString(clientDecrypted.d) || this.isObject(clientDecrypted.d))) {
@@ -342,7 +361,8 @@ class NodeCrypt {
 							clientId: serverDecrypted.c,
 							username: this.channel[serverDecrypted.c].username,
 							type: clientDecrypted.t,
-							data: clientDecrypted.d
+							data: clientDecrypted.d,
+							id: clientDecrypted.id
 						})
 					} catch (error) {
 						this.logEvent('onMessage-client-message-callback', error, 'error')
@@ -479,19 +499,52 @@ class NodeCrypt {
 		return (false)
 	}
 
+	// Send an end-to-end encrypted read receipt to a specific client.
+	// 向指定客户端发送端到端加密的已读回执。
+	sendReadReceipt(clientId, messageId) {
+		if (!this.isString(clientId) || !this.isString(messageId) || !this.serverShared) {
+			return (false)
+		}
+		const client = this.channel[clientId];
+		if (!client || !client.shared) {
+			return (false)
+		}
+		try {
+			const encryptedClientReceipt = this.encryptClientMessage({
+				a: 'r',
+				p: messageId
+			}, client.shared);
+			const encryptedServerRelay = this.encryptServerMessage({
+				a: 'c',
+				p: encryptedClientReceipt,
+				c: clientId
+			}, this.serverShared);
+			return (this.sendMessage(encryptedServerRelay))
+		} catch (error) {
+			this.logEvent('sendReadReceipt', error, 'error')
+		}
+		return (false)
+	}
+
 	// Send a message to all channels
 	// 向所有频道发送消息
-	sendChannelMessage(type, data) {
+	sendChannelMessage(type, data, id = null) {
 		if (this.serverShared) {
 			try {
 				let payloads = {};
 				for (const clientId in this.channel) {
 					if (this.channel[clientId].shared && this.channel[clientId].username) {
-						payloads[clientId] = this.encryptClientMessage({
+						const clientMessage = {
 							a: 'm',
 							t: type,
 							d: data
-						}, this.channel[clientId].shared);
+						};
+						// Include the message id so recipients can send read receipts
+						// 带上消息 id，接收方才能回传已读回执
+						if (this.isString(id)) {
+							clientMessage.id = id
+						}
+						payloads[clientId] = this.encryptClientMessage(clientMessage, this.channel[clientId].shared);
 						if (payloads[clientId].length === 0) {
 							return (false)
 						}
@@ -507,12 +560,29 @@ class NodeCrypt {
 					}
 					this.connection.send(payload)
 				}
+				// No fully secured online recipients: nothing to relay, but the
+				// message is still valid and stays in local history. This is not
+				// a send failure, so report success (single-check status).
+				// 没有已握手的在线接收者：无需转发，消息仍有效并保留在本地历史中。
+				// 这不是发送失败，因此返回成功（单勾状态）。
 				return (true)
 			} catch (error) {
 				this.logEvent('sendChannelMessage', error, 'error')
 			}
 		}
 		return (false)
+	}
+
+	// Number of fully secured online recipients
+	// 已完成握手的在线接收者数量
+	getRecipientCount() {
+		let count = 0;
+		for (const clientId in this.channel) {
+			if (this.channel[clientId].shared && this.channel[clientId].username) {
+				count += 1
+			}
+		}
+		return (count)
 	}
 
 	// Encrypt a message for the server
@@ -613,6 +683,20 @@ class NodeCrypt {
 	// 处理服务器公钥
 	async handleServerKey(serverKey) {
 		this.logEvent('handleServerKey', 'Received server key');
+		// TOFU (Trust On First Use): warn when the server key differs from
+		// the one seen before — could be a redeploy or a MITM.
+		// TOFU 固定：服务器公钥与之前不同时发出警告（可能是重新部署或中间人）。
+		const previousKey = localStorage.getItem(this.SERVER_KEY_STORAGE);
+		if (previousKey && previousKey !== serverKey) {
+			this.logEvent('handleServerKey', 'Server key changed!', 'error');
+			if (this.callbacks.onServerKeyChanged) {
+				try {
+					this.callbacks.onServerKeyChanged()
+				} catch (error) {
+					this.logEvent('onServerKeyChanged callback', error, 'error')
+				}
+			}
+		}
 		localStorage.removeItem(this.SERVER_KEY_STORAGE);
 		localStorage.setItem(this.SERVER_KEY_STORAGE, serverKey);
 		this.config.rsaPublic = serverKey;

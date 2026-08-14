@@ -24,7 +24,8 @@ let themeDragCleanup = null;
 const DEFAULT_SETTINGS = {
 	notify: false,
 	sound: false,
-	theme: 'theme1'
+	theme: 'theme1',
+	appearance: 'light' // 外观：light / dark / auto
 	// 注意：我们不设置默认语言，让系统自动检测浏览器语言
 	// Note: We don't set a default language, let the system auto-detect browser language
 };
@@ -51,13 +52,15 @@ function saveSettings(settings) {
 		notify,
 		sound,
 		theme,
-		language
+		language,
+		appearance
 	} = settings;
 	localStorage.setItem('settings', JSON.stringify({
 		notify,
 		sound,
 		theme,
-		language
+		language,
+		appearance
 	}))
 }
 
@@ -67,6 +70,21 @@ function applySettings(settings) {
 	// Initialize i18n with current language setting
 	// 根据当前语言设置初始化国际化
 	initI18n(settings);
+}
+
+// Appearance (light / dark / auto)
+// 外观模式（浅色 / 深色 / 跟随系统）
+const darkMedia = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+let currentAppearanceMode = 'light';
+
+function resolveAppearance(mode) {
+	return mode === 'auto' ? (darkMedia && darkMedia.matches ? 'dark' : 'light') : mode;
+}
+
+export function applyAppearance(mode) {
+	currentAppearanceMode = mode || 'light';
+	const resolved = resolveAppearance(currentAppearanceMode);
+	document.documentElement.setAttribute('data-theme', resolved);
 }
 
 // Ask for browser notification permission
@@ -138,6 +156,15 @@ function setupSettingsPanel() {
 					<div class="theme-item ${settings.theme === theme.id ? 'active' : ''}" data-theme-id="${theme.id}" style="background: ${theme.background}; background-size: cover; background-position: center;">
 					</div>
 				`).join('')}
+			</div>
+		</div>
+
+		<div class="settings-section">
+			<div class="settings-section-title">${t('settings.appearance', 'Appearance')}</div>
+			<div class="appearance-selector" id="appearance-selector">
+				<button type="button" class="appearance-btn ${settings.appearance === 'light' ? 'active' : ''}" data-appearance="light">${t('settings.appearance_light', 'Light')}</button>
+				<button type="button" class="appearance-btn ${settings.appearance === 'dark' ? 'active' : ''}" data-appearance="dark">${t('settings.appearance_dark', 'Dark')}</button>
+				<button type="button" class="appearance-btn ${settings.appearance === 'auto' ? 'active' : ''}" data-appearance="auto">${t('settings.appearance_auto', 'Auto')}</button>
 			</div>
 		</div>
 	`;	const notifyCheckbox = $('#settings-notify', settingsContent);
@@ -370,6 +397,21 @@ function setupSettingsPanel() {
 			}
 		});
 	}
+	// Appearance (light / dark / auto) buttons
+	// 外观模式按钮
+	const appearanceSelector = $('#appearance-selector', settingsContent);
+	if (appearanceSelector) {
+		$$('.appearance-btn', appearanceSelector).forEach(btn => {
+			btn.onclick = () => {
+				$$('.appearance-btn', appearanceSelector).forEach(b => b.classList.remove('active'));
+				btn.classList.add('active');
+				const mode = btn.dataset.appearance;
+				settings.appearance = mode;
+				applyAppearance(mode);
+				saveSettings(settings);
+			};
+		});
+	}
 }
 
 // Check if device is mobile
@@ -461,6 +503,17 @@ function initSettings() {
 	// 从设置中应用主题
 	if (settings.theme) {
 		applyTheme(settings.theme);
+	}
+
+	// Apply appearance (light / dark / auto)
+	// 应用外观模式（浅色 / 深色 / 跟随系统）
+	applyAppearance(settings.appearance || 'light');
+	if (darkMedia && typeof darkMedia.addEventListener === 'function') {
+		darkMedia.addEventListener('change', () => {
+			if (currentAppearanceMode === 'auto') {
+				applyAppearance('auto');
+			}
+		});
 	}
 	
 	// Listen for language change events to update UI

@@ -42,8 +42,7 @@ import {
 // Import common DOM manipulation functions from util.dom.js
 import {
 	$,         // 简化的 document.querySelector / Simplified selector
-	$id,       // document.getElementById 的简写 / Shortcut for getElementById
-	removeClass // 移除类名 / Remove a CSS class
+	$id       // document.getElementById 的简写 / Shortcut for getElementById
 } from './util.dom.js';
 
 // 从 room.js 中导入房间管理相关变量和函数
@@ -74,7 +73,6 @@ import {	renderUserList,       // 渲染用户列表 / Render user list
 	preventSpaceInput,    // 防止输入空格 / Prevent space input in form fields
 	loginFormHandler,     // 登录表单提交处理器 / Login form handler
 	openLoginModal,       // 打开登录窗口 / Open login modal
-	setupTabs,            // 设置页面标签切换 / Setup tab switching
 	autofillRoomPwd,      // 自动填充房间密码 / Autofill room password
 	generateLoginForm,    // 生成登录表单HTML / Generate login form HTML
 	initLoginForm,        // 初始化登录表单 / Initialize login form
@@ -90,7 +88,7 @@ import { callManager } from './util.call.js';
 window.config = {
 	wsAddress: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`, // WebSocket 服务器地址 / WebSocket server address
 	//wsAddress: `wss://crypt.works`,
-	debug: true,                      // 是否开启调试模式 / Enable debug mode
+	debug: false,                     // 是否开启调试模式 / Enable debug mode (off: no crypto payloads in console)
 	iceServers: [                     // WebRTC STUN/TURN 服务器配置 / WebRTC ICE servers
 		{ urls: 'stun:stun.cloudflare.com:3478' },
 		{ urls: 'stun:stun.l.google.com:19302' }
@@ -139,12 +137,22 @@ window.addEventListener('DOMContentLoaded', () => {
 	const joinBtn = $('.join-room'); // 加入房间按钮 / Join room button
 	if (joinBtn) {
 		joinBtn.onclick = openLoginModal; // 点击打开登录窗口 / Click to open login modal
+		// 键盘可访问性 / Keyboard accessibility
+		joinBtn.setAttribute('role', 'button');
+		joinBtn.setAttribute('tabindex', '0');
+		joinBtn.onkeydown = (e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				openLoginModal();
+			}
+		};
 	}
 	// 阻止用户输入用户名、房间名和密码时输入空格
 	// Prevent space input for username, room name, and password fields
 	preventSpaceInput($id('userName'));
 	preventSpaceInput($id('roomName'));
-	preventSpaceInput($id('password'));
+	// 密码允许任意字符（含符号），仅限制长度，不做空格过滤
+	// Password allows any characters (including symbols) — length-limited only
 	
 	// 初始化翻转卡片功能 / Initialize flip card functionality
 	initFlipCard();
@@ -183,10 +191,37 @@ window.addEventListener('DOMContentLoaded', () => {
 			closeSettingsPanel(); // 关闭设置面板 / Close settings panel
 		}
 	}
+
+	// Esc 依次关闭：⋮菜单 → 表情面板 → 设置面板 / Esc closes: menu → emoji picker → settings
+	document.addEventListener('keydown', (e) => {
+		if (e.key !== 'Escape') return;
+		const moreBtn = $id('more-btn');
+		const menu = $id('more-menu');
+		if (menu && moreBtn && menu.classList.contains('open')) {
+			moreBtn.click();
+			return;
+		}
+		const picker = document.querySelector('emoji-picker.show');
+		if (picker) {
+			document.querySelector('.chat-emoji-btn')?.click();
+			return;
+		}
+		const settings = $id('settings-sidebar');
+		if (settings && (settings.classList.contains('open') || settings.classList.contains('mobile-open'))) {
+			closeSettingsPanel();
+		}
+	});
 	// 点击其他地方时关闭设置面板 (已移除，因为现在使用侧边栏形式)
 	// Close settings panel when clicking outside (removed since we now use sidebar format)
 	const input = document.querySelector('.input-message-input'); // 消息输入框 / Message input box
 	const sendButton = $id('send-message-btn'); // 发送按钮 / Send button
+
+	const createMessageId = () => {
+		if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+			return 'm_' + window.crypto.randomUUID();
+		}
+		return 'm_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+	};
 
 	function updateSendButtonState() {
 		if (!sendButton) return;
@@ -214,6 +249,57 @@ window.addEventListener('DOMContentLoaded', () => {
 			}
 		});
 	}
+
+	// 移动端软键盘适配：键盘弹出时把固定输入条抬到键盘上方。
+	// 部分浏览器（尤其 iOS，Android 偶发）不会自动抬升 fixed 元素，
+	// 这里用 visualViewport 计算键盘遮挡高度并实时调整。
+	// Mobile keyboard adaptation: lift the fixed input bar above the soft
+	// keyboard via visualViewport (iOS keeps fixed elements below the layout
+	// viewport, Android occasionally skips the lift).
+	const inputAreaEl = document.querySelector('.chat-input-area');
+	let appliedKeyboardOffset = 0;
+
+	function syncInputToKeyboard() {
+		if (!inputAreaEl || window.innerWidth > 768) {
+			if (appliedKeyboardOffset !== 0) {
+				appliedKeyboardOffset = 0;
+				inputAreaEl && (inputAreaEl.style.bottom = '');
+			}
+			return;
+		}
+		const vv = window.visualViewport;
+		let overlap = 0;
+		if (vv) {
+			overlap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+		}
+		overlap = Math.round(overlap);
+		if (overlap === appliedKeyboardOffset) return;
+		appliedKeyboardOffset = overlap;
+		inputAreaEl.style.bottom = overlap > 0 ? overlap + 'px' : '';
+		// 键盘弹出时把最新消息滚到可见区域（输入条上方）
+		// Keep the latest messages visible above the lifted input bar
+		if (overlap > 0) {
+			const chatArea = $id('chat-area');
+			if (chatArea) chatArea.scrollTop = chatArea.scrollHeight;
+		}
+	}
+
+	if (window.visualViewport) {
+		window.visualViewport.addEventListener('resize', syncInputToKeyboard);
+		window.visualViewport.addEventListener('scroll', syncInputToKeyboard);
+	}
+	window.addEventListener('resize', syncInputToKeyboard);
+	window.addEventListener('orientationchange', () => setTimeout(syncInputToKeyboard, 250));
+	// 输入框聚焦/失焦时重试几次，覆盖键盘动画期间的竞态
+	// Retry a few times around focus/blur to cover the keyboard animation race
+	if (input) {
+		input.addEventListener('focus', () => {
+			[50, 150, 350, 600].forEach(ms => setTimeout(syncInputToKeyboard, ms));
+		});
+		input.addEventListener('blur', () => {
+			[50, 250].forEach(ms => setTimeout(syncInputToKeyboard, ms));
+		});
+	}
 	
 	if (sendButton) {
 		sendButton.addEventListener('click', sendMessage);
@@ -227,6 +313,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
 		if (!text && images.length === 0) return; // 如果没有文本且没有图片，则不发送
 		const rd = roomsData[activeRoomIndex]; // 当前房间数据 / Current room data
+
+		// 房间里没有其他成员时提醒一次：消息只保存在本机
+		// One-time notice: messages sent while alone stay on this device only
+		const notifyIfAlone = () => {
+			if (!rd || rd.emptyRoomNoticeShown) return;
+			if (rd.chat && typeof rd.chat.getRecipientCount === 'function' && rd.chat.getRecipientCount() === 0) {
+				rd.emptyRoomNoticeShown = true;
+				addSystemMsg(t('system.room_empty', 'You are alone in this room — messages stay on this device only.'));
+			}
+		};
 		
 		if (rd && rd.chat) {
 			if (images.length > 0) {
@@ -238,6 +334,7 @@ window.addEventListener('DOMContentLoaded', () => {
 				};
 
 				if (rd.privateChatTargetId) {
+					const messageId = createMessageId();
 					// 私聊图片消息加密并发送
 					// Encrypt and send private image message
 					const targetClient = rd.chat.channel[rd.privateChatTargetId];
@@ -245,39 +342,8 @@ window.addEventListener('DOMContentLoaded', () => {
 						const clientMessagePayload = {
 							a: 'm',
 							t: 'image_private',
-							d: messageContent
-						};
-						const encryptedClientMessage = rd.chat.encryptClientMessage(clientMessagePayload, targetClient.shared);
-						const serverRelayPayload = {
-							a: 'c',
-							p: encryptedClientMessage,
-							c: rd.privateChatTargetId
-						};
-						const encryptedMessageForServer = rd.chat.encryptServerMessage(serverRelayPayload, rd.chat.serverShared);						rd.chat.sendMessage(encryptedMessageForServer);
-						addMsg(messageContent, false, 'image_private');
-					} else {
-						addSystemMsg(`${t('system.private_message_failed', 'Cannot send private message to')} ${rd.privateChatTargetName}. ${t('system.user_not_connected', 'User might not be fully connected.')}`)
-					}
-				} else {
-					// 公共频道图片消息发送
-					// Send image message to public channel
-					rd.chat.sendChannelMessage('image', messageContent);
-					addMsg(messageContent, false, 'image');
-				}
-				
-				imagePasteHandler.clearImages(); // 清除所有图片预览
-			} else if (text) {
-				// 发送纯文本消息
-				// Send text-only message
-				if (rd.privateChatTargetId) {
-					// 私聊消息加密并发送
-					// Encrypt and send private message
-					const targetClient = rd.chat.channel[rd.privateChatTargetId];
-					if (targetClient && targetClient.shared) {
-						const clientMessagePayload = {
-							a: 'm',
-							t: 'text_private',
-							d: text
+							d: messageContent,
+							id: messageId
 						};
 						const encryptedClientMessage = rd.chat.encryptClientMessage(clientMessagePayload, targetClient.shared);
 						const serverRelayPayload = {
@@ -286,15 +352,56 @@ window.addEventListener('DOMContentLoaded', () => {
 							c: rd.privateChatTargetId
 						};
 						const encryptedMessageForServer = rd.chat.encryptServerMessage(serverRelayPayload, rd.chat.serverShared);
-						rd.chat.sendMessage(encryptedMessageForServer);					addMsg(text, false, 'text_private');
+						const sent = rd.chat.sendMessage(encryptedMessageForServer);
+						addMsg(messageContent, false, 'image_private', null, { id: messageId, status: sent ? 'sent' : 'failed' });
+					} else {
+						addSystemMsg(`${t('system.private_message_failed', 'Cannot send private message to')} ${rd.privateChatTargetName}. ${t('system.user_not_connected', 'User might not be fully connected.')}`)
+					}
+				} else {
+					// 公共频道图片消息发送
+					// Send image message to public channel
+					const messageId = createMessageId();
+					const sent = rd.chat.sendChannelMessage('image', messageContent, messageId);
+					addMsg(messageContent, false, 'image', null, { id: messageId, status: sent ? 'sent' : 'failed' });
+					notifyIfAlone();
+				}
+				
+				imagePasteHandler.clearImages(); // 清除所有图片预览
+			} else if (text) {
+				// 发送纯文本消息
+				// Send text-only message
+				if (rd.privateChatTargetId) {
+					const messageId = createMessageId();
+					// 私聊消息加密并发送
+					// Encrypt and send private message
+					const targetClient = rd.chat.channel[rd.privateChatTargetId];
+					if (targetClient && targetClient.shared) {
+						const clientMessagePayload = {
+							a: 'm',
+							t: 'text_private',
+							d: text,
+							id: messageId
+						};
+						const encryptedClientMessage = rd.chat.encryptClientMessage(clientMessagePayload, targetClient.shared);
+						const serverRelayPayload = {
+							a: 'c',
+							p: encryptedClientMessage,
+							c: rd.privateChatTargetId
+						};
+						const encryptedMessageForServer = rd.chat.encryptServerMessage(serverRelayPayload, rd.chat.serverShared);
+						const sent = rd.chat.sendMessage(encryptedMessageForServer);
+						addMsg(text, false, 'text_private', null, { id: messageId, status: sent ? 'sent' : 'failed' });
 					} else {
 						addSystemMsg(`${t('system.private_message_failed', 'Cannot send private message to')} ${rd.privateChatTargetName}. ${t('system.user_not_connected', 'User might not be fully connected.')}`)
 					}
 				} else {
 					// 公共频道消息发送
 					// Send public message
-					rd.chat.sendChannelMessage('text', text);
-					addMsg(text);				}
+					const messageId = createMessageId();
+					const sent = rd.chat.sendChannelMessage('text', text, messageId);
+					addMsg(text, false, 'text', null, { id: messageId, status: sent ? 'sent' : 'failed' });
+					notifyIfAlone();
+				}
 			}
 			
 			// 清空输入框并触发 input 事件
@@ -319,6 +426,7 @@ window.addEventListener('DOMContentLoaded', () => {
 				const userName = rd.myUserName || '';
 				const msgWithUser = { ...message, userName };
 				if (rd.privateChatTargetId) {
+					const messageId = createMessageId();
 					// 私聊文件加密并发送
 					// Encrypt and send private file message
 					const targetClient = rd.chat.channel[rd.privateChatTargetId];
@@ -365,7 +473,6 @@ window.addEventListener('DOMContentLoaded', () => {
 	// Render main UI elements
 	renderMainHeader();
 	renderUserList();
-	setupTabs();
 
 	const roomList = $id('room-list');
 	const sidebar = $id('sidebar');
@@ -380,18 +487,6 @@ window.addEventListener('DOMContentLoaded', () => {
 			if (isMobile()) {
 				sidebar?.classList.remove('mobile-open');
 				sidebarMask?.classList.remove('active');
-			}
-		});
-	}
-
-	// 在移动端点击成员标签后关闭右侧面板
-	// On mobile, clicking member tabs closes right panel
-	const memberTabs = $id('member-tabs');
-	if (memberTabs) {
-		memberTabs.addEventListener('click', () => {
-			if (isMobile()) {
-				removeClass(rightbar, 'mobile-open');
-				removeClass(rightbarMask, 'active');
 			}
 		});
 	}
