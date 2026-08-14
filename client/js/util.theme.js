@@ -30,6 +30,25 @@ const TG_THEMES = Array.from({ length: 33 }, (_, i) => {
 	};
 });
 
+// 合并款：Telegram 线稿图案 × 原 7 套几何渐变底色（渐变主色采样自原 PNG）
+// Merged: TG line-art patterns over the ORIGINAL 7 gradient bases
+// (gradient colors sampled from the original PNG themes)
+const MG_GRADIENTS = [
+	['#7cbed8', '#c1dfa0'], // theme1 青绿→浅绿
+	['#b0d9d8', '#8ab2f0'], // theme2 青→蓝
+	['#ccb4ec', '#a1c6ea'], // theme3 紫→蓝
+	['#e5a4c6', '#e9b291'], // theme4 粉→杏
+	['#c2a2d5', '#e99cc2'], // theme5 紫→粉
+	['#eca86c', '#e9aa5e'], // theme6 橙
+	['#e891c4', '#5ec0da']  // theme7 粉→青
+];
+
+const MG_THEMES = MG_GRADIENTS.map((g, i) => ({
+	id: 'mg' + (i + 1),
+	tile: true,
+	background: `url('tg-patterns/pattern-${i + 1}.svg'), linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)), linear-gradient(135deg, ${g[0]} 0%, ${g[1]} 100%)`
+}));
+
 export const THEMES = [
 	{
 		id: 'theme1',
@@ -83,7 +102,8 @@ export const THEMES = [
 		// 波浪线 / waves（薰衣草渐变）
 		background: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23eee6ff'/%3E%3Cstop offset='1' stop-color='%23cdb8f5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='50' height='50' fill='url(%23g)'/%3E%3Cpath d='M0 28 Q12.5 18 25 28 T50 28' fill='none' stroke='%23ffffff' stroke-opacity='0.5' stroke-width='1.5'/%3E%3Cpath d='M0 38 Q12.5 28 25 38 T50 38' fill='none' stroke='%23ffffff' stroke-opacity='0.32' stroke-width='1.2'/%3E%3C/svg%3E\")"
 	},
-	...TG_THEMES
+	...TG_THEMES,
+	...MG_THEMES
 ];
 
 // Get current theme from settings
