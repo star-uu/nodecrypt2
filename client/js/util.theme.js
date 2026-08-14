@@ -3,6 +3,33 @@
 
 // Theme data - simplified structure
 // 主题数据 - 简化结构
+// Telegram 提取的图案壁纸（pattern-1..33，来源 1a23 blog）
+// 图案是黑线稿，叠加在柔和底色上按原始尺寸平铺（Telegram 原生方式）
+// Telegram extracted pattern wallpapers: black line-art tiled over soft bases
+const TG_BASES = [
+	'#e8f1fb 0%, #d5e3f7 100%',
+	'#fdeef3 0%, #f9d8e5 100%',
+	'#eafaf1 0%, #d0f0df 100%',
+	'#fff7e6 0%, #fbe8c0 100%',
+	'#f3eefd 0%, #e2d5fb 100%',
+	'#e7f8fa 0%, #cdeef2 100%',
+	'#f7f0fb 0%, #e8d7f5 100%',
+	'#fdf2f0 0%, #f8dcd7 100%',
+	'#eef6e9 0%, #d9ecd0 100%',
+	'#f0f4fb 0%, #d8e2f2 100%',
+	'#fbf0e7 0%, #f6dfc8 100%'
+];
+
+const TG_THEMES = Array.from({ length: 33 }, (_, i) => {
+	const n = i + 1;
+	const base = TG_BASES[i % TG_BASES.length];
+	return {
+		id: 'tg' + n,
+		tile: true,
+		background: `url('tg-patterns/pattern-${n}.svg'), linear-gradient(rgba(255,255,255,0.72), rgba(255,255,255,0.72)), linear-gradient(135deg, ${base})`
+	};
+});
+
 export const THEMES = [
 	{
 		id: 'theme1',
@@ -55,7 +82,8 @@ export const THEMES = [
 		id: 'theme12',
 		// 波浪线 / waves（薰衣草渐变）
 		background: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23eee6ff'/%3E%3Cstop offset='1' stop-color='%23cdb8f5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='50' height='50' fill='url(%23g)'/%3E%3Cpath d='M0 28 Q12.5 18 25 28 T50 28' fill='none' stroke='%23ffffff' stroke-opacity='0.5' stroke-width='1.5'/%3E%3Cpath d='M0 38 Q12.5 28 25 38 T50 38' fill='none' stroke='%23ffffff' stroke-opacity='0.32' stroke-width='1.2'/%3E%3C/svg%3E\")"
-	}
+	},
+	...TG_THEMES
 ];
 
 // Get current theme from settings
@@ -99,7 +127,16 @@ export function applyTheme(themeId) {
 		mainElement.style.background = '';
 		
 		// Apply new background
-		if (theme.background.startsWith('url(')) {
+		if (theme.tile) {
+			// 平铺主题（Telegram 图案）：按原始尺寸重复铺满
+			// Tiled themes (Telegram patterns): repeat at natural size
+			mainElement.style.background = theme.background;
+			mainElement.style.backgroundRepeat = 'repeat';
+			mainElement.style.backgroundSize = 'auto';
+			mainElement.style.backgroundPosition = '0 0';
+		} else if (theme.background.startsWith('url(')) {
+			// 原有几何图案：拉伸铺满
+			// Original geometric patterns: stretched to fill
 			mainElement.style.backgroundImage = theme.background;
 			mainElement.style.backgroundSize = '100% 100%';
 			mainElement.style.backgroundRepeat = 'no-repeat';
