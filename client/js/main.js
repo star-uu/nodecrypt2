@@ -261,7 +261,7 @@ window.addEventListener('DOMContentLoaded', () => {
 	let appliedKeyboardOffset = 0;
 
 	function syncInputToKeyboard() {
-		const isMobile = window.innerWidth <= 768;
+		const isMobile = window.innerWidth <= 900;
 		if (!isMobile) {
 			if (appliedKeyboardOffset !== 0) {
 				appliedKeyboardOffset = 0;
@@ -484,7 +484,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 	// 判断是否为移动端
 	// Check if the device is mobile
-	const isMobile = () => window.innerWidth <= 768;
+	const isMobile = () => window.innerWidth <= 900;
 
 	// 渲染主界面元素
 	// Render main UI elements

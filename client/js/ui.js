@@ -212,7 +212,7 @@ export function setupMobileUIHandlers() {
 	});
 
 	function isMobile() {
-		return window.innerWidth <= 768
+		return window.innerWidth <= 900
 	}
 
 	function updateMobileBtnDisplay() {

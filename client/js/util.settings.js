@@ -416,7 +416,7 @@ function setupSettingsPanel() {
 
 // Check if device is mobile
 function isMobile() {
-	return window.innerWidth <= 768;
+	return window.innerWidth <= 900;
 }
 
 // Open the settings panel

@@ -80,7 +80,7 @@
 
 .call-card {
 	width: 300px;
-	padding: 22px 20px 18px;
+	padding: 14px 14px 14px;
 	border-radius: 18px;
 	background: linear-gradient(145deg, #2b2f45, #1e2233);
 	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
@@ -98,8 +98,8 @@
 	aspect-ratio: 4 / 3;
 	border-radius: 12px;
 	overflow: hidden;
-	background: #000;
-	margin: 0 0 12px;
+	background: #0b0e1a;
+	margin: 0 0 10px;
 }
 
 #call-remote-video {
@@ -107,26 +107,74 @@
 	height: 100%;
 	object-fit: cover;
 	display: block;
-	background: #000;
+	background: #0b0e1a;
 }
 
 #call-local-video {
 	position: absolute;
-	right: 8px;
-	bottom: 8px;
-	width: 88px;
+	right: 10px;
+	top: 10px;
+	width: 84px;
 	aspect-ratio: 3 / 4;
 	object-fit: cover;
-	border-radius: 8px;
+	border-radius: 10px;
 	border: 1px solid rgba(255, 255, 255, 0.35);
 	background: #111;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
 	display: none;
 	z-index: 2;
 }
 
+/* Name / room / duration overlay on a scrim at the bottom of the video */
+/* 名字/房间/时长悬浮在画面底部渐变遮罩上 */
+.call-overlay.mode-video .call-video-area::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 88px;
+	background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.62) 100%);
+	z-index: 1;
+	pointer-events: none;
+}
+
+.call-overlay.mode-video .call-name,
+.call-overlay.mode-video .call-room,
+.call-overlay.mode-video .call-status {
+	position: absolute;
+	left: 14px;
+	right: 104px;
+	text-align: left;
+	z-index: 3;
+}
+
+.call-overlay.mode-video .call-name {
+	bottom: 46px;
+	font-size: 18px;
+}
+
+.call-overlay.mode-video .call-room {
+	bottom: 30px;
+	margin: 0;
+}
+
+.call-overlay.mode-video .call-status {
+	bottom: 10px;
+	margin: 0;
+	min-height: 0;
+	color: rgba(255, 255, 255, 0.92);
+	font-variant-numeric: tabular-nums;
+}
+
+.call-overlay.mode-video .call-avatar {
+	width: 96px;
+	height: 96px;
+	margin: 12px auto 14px;
+}
+
 .call-overlay.mode-video .call-card {
-	width: 380px;
+	width: 360px;
 }
 
 @keyframes callCardIn {
@@ -301,12 +349,24 @@
 
 /* Mobile layout */
 /* 移动端布局 */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
 	.member-call-btn {
 		opacity: 1;
 		width: 30px;
 		height: 30px;
 		right: 8px;
+	}
+
+	#call-local-video {
+		width: 64px;
+		right: 8px;
+		top: 8px;
+	}
+
+	.call-overlay.mode-video .call-name,
+	.call-overlay.mode-video .call-room,
+	.call-overlay.mode-video .call-status {
+		right: 84px;
 	}
 
 	.member-call-btn.video {

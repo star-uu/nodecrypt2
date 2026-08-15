@@ -21,6 +21,7 @@ body {
 .container {
 	display: flex;
 	height: 100vh;
+	height: 100dvh;
 	background: #fff;
 }
 
@@ -711,7 +712,7 @@ body {
 	display: flex;
 	justify-content: center;
 	align-items: flex-end;
-	padding: 3px 30px 17px 30px;
+	padding: 3px 30px calc(17px + env(safe-area-inset-bottom, 0px)) 30px;
 	background: none;
 }
 
@@ -1572,7 +1573,7 @@ html {
 }
 
 /* Responsive design for mobile */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
 	.file-upload-container {
 		width: 95%;
 		max-height: 90vh;
@@ -1594,7 +1595,7 @@ html {
 
 /* Responsive Design for File Messages */
 /* 文件消息响应式设计 */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
 	.file-message {
 		max-width: 280px;
 	}
@@ -1785,7 +1786,7 @@ html {
 	margin: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
 	.input-image-preview-img {
 		width: 60px;
 		height: 45px;
