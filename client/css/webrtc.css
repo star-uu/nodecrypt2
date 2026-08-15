@@ -91,15 +91,15 @@
 	animation: callCardIn 0.25s ease;
 }
 
-/* Drag handle: grab bar at the top of the call window */
-/* 拖动把手：通话窗口顶部的抓握条 */
+/* Drag handle: grab bar hugging the top edge of the call window */
+/* 拖动把手：紧贴通话窗口顶部边缘的抓握条 */
 .call-drag-handle {
 	position: absolute;
-	top: 5px;
+	top: 0;
 	left: 50%;
 	transform: translateX(-50%);
 	width: 64px;
-	height: 18px;
+	height: 16px;
 	z-index: 20;
 	cursor: grab;
 	touch-action: none;
@@ -111,8 +111,8 @@
 
 .call-drag-handle::after {
 	content: "";
-	width: 44px;
-	height: 5px;
+	width: 40px;
+	height: 4px;
 	border-radius: 999px;
 	background: rgba(255, 255, 255, 0.35);
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
