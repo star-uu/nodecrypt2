@@ -2,6 +2,8 @@
 
 🌐 **[English README](README_EN.md)**
 
+📚 **[从 0 到精通学习路线（0 编程基础友好）](docs/LEARNING.md)**
+
 ## 🚀 部署说明
 
 ### 一键部署到 Cloudflare Workers
