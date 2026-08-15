@@ -189,6 +189,9 @@
 	right: 104px;
 	text-align: left;
 	z-index: 3;
+	/* 只显示、不接收点击，避免挡住下方的静音/摄像头按钮 */
+	/* Display-only: never intercept clicks meant for the action buttons */
+	pointer-events: none;
 }
 
 .call-overlay.mode-video .call-name {
