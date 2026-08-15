@@ -39,6 +39,7 @@ class CallManager {
 		this.timeoutTimer = null;
 		this.durationTimer = null;
 		this.startTime = 0;
+		this.overlayPos = null; // 会话内记住用户拖动的通话窗口位置 / remember dragged position for this session
 		this.uiReady = false;
 		this.callMode = 'voice'; // voice | video
 		this.localVideoEnabled = true;
@@ -767,6 +768,7 @@ class CallManager {
 		overlay.className = 'call-overlay hidden';
 		overlay.innerHTML = `
 			<div class="call-card">
+				<div class="call-drag-handle" id="call-drag-handle" title="${t('call.drag_to_move', 'Drag to move · double-click to reset')}" aria-label="${t('call.drag_to_move', 'Drag to move · double-click to reset')}"></div>
 				<div class="call-video-area" id="call-video-area" style="display:none;">
 					<video id="call-remote-video" autoplay playsinline></video>
 					<video id="call-local-video" autoplay playsinline muted></video>
@@ -829,6 +831,77 @@ class CallManager {
 		if (speakerBtn && !(typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype)) {
 			speakerBtn.style.display = 'none';
 		}
+
+		// Draggable call window: the handle moves the overlay anywhere on
+		// screen (clamped to the viewport); double-click resets to the corner.
+		// 可拖动通话窗口：拖动手柄可把窗口移到屏幕任意位置（限制在视口内）；
+		// 双击手柄复位到默认角落。
+		this.setupDragHandle(overlay);
+	}
+
+	setupDragHandle(overlay) {
+		const handle = $id('call-drag-handle');
+		if (!handle || !overlay) return;
+		let dragging = false;
+		let hasDragged = false;
+		let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+		const beginDrag = (e) => {
+			dragging = true;
+			hasDragged = false;
+			const rect = overlay.getBoundingClientRect();
+			// 从 right/bottom 锚定切换为 left/top 定位
+			// Switch from right/bottom anchoring to left/top coordinates
+			overlay.style.left = rect.left + 'px';
+			overlay.style.top = rect.top + 'px';
+			overlay.style.right = 'auto';
+			overlay.style.bottom = 'auto';
+			overlay.style.transform = 'none';
+			startLeft = rect.left;
+			startTop = rect.top;
+			startX = e.clientX;
+			startY = e.clientY;
+			overlay.classList.add('dragging');
+			try {
+				handle.setPointerCapture(e.pointerId);
+			} catch (error) {}
+		};
+
+		const moveDrag = (e) => {
+			if (!dragging) return;
+			const dx = e.clientX - startX;
+			const dy = e.clientY - startY;
+			if (Math.abs(dx) + Math.abs(dy) > 4) hasDragged = true;
+			if (!hasDragged) return;
+			const card = overlay.querySelector('.call-card');
+			const w = card ? card.offsetWidth : 300;
+			const h = card ? card.offsetHeight : 400;
+			const nx = Math.min(Math.max(8, startLeft + dx), Math.max(8, window.innerWidth - w - 8));
+			const ny = Math.min(Math.max(8, startTop + dy), Math.max(8, window.innerHeight - h - 8));
+			overlay.style.left = nx + 'px';
+			overlay.style.top = ny + 'px';
+		};
+
+		const endDrag = () => {
+			if (!dragging) return;
+			dragging = false;
+			overlay.classList.remove('dragging');
+			const rect = overlay.getBoundingClientRect();
+			this.overlayPos = { left: rect.left, top: rect.top };
+		};
+
+		handle.addEventListener('pointerdown', beginDrag);
+		handle.addEventListener('pointermove', moveDrag);
+		handle.addEventListener('pointerup', endDrag);
+		handle.addEventListener('pointercancel', endDrag);
+		handle.addEventListener('dblclick', () => {
+			this.overlayPos = null;
+			overlay.style.left = '';
+			overlay.style.top = '';
+			overlay.style.right = '';
+			overlay.style.bottom = '';
+			overlay.style.transform = '';
+		});
 	}
 
 	showUI(mode) {
@@ -837,6 +910,14 @@ class CallManager {
 		removeClass(overlay, 'hidden');
 		overlay.classList.remove('mode-incoming', 'mode-active');
 		overlay.classList.add(mode === 'incoming' ? 'mode-incoming' : 'mode-active');
+		// 恢复本会话内用户拖到的位置 / restore the dragged position for this session
+		if (this.overlayPos) {
+			overlay.style.left = this.overlayPos.left + 'px';
+			overlay.style.top = this.overlayPos.top + 'px';
+			overlay.style.right = 'auto';
+			overlay.style.bottom = 'auto';
+			overlay.style.transform = 'none';
+		}
 
 		const nameEl = $id('call-name');
 		if (nameEl) nameEl.textContent = this.targetName || '';

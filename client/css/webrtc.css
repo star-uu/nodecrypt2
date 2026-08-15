@@ -79,6 +79,7 @@
 }
 
 .call-card {
+	position: relative;
 	width: 300px;
 	padding: 14px 14px 14px;
 	border-radius: 18px;
@@ -88,6 +89,47 @@
 	text-align: center;
 	overflow: hidden;
 	animation: callCardIn 0.25s ease;
+}
+
+/* Drag handle: grab bar at the top of the call window */
+/* 拖动把手：通话窗口顶部的抓握条 */
+.call-drag-handle {
+	position: absolute;
+	top: 5px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 64px;
+	height: 18px;
+	z-index: 20;
+	cursor: grab;
+	touch-action: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent;
+}
+
+.call-drag-handle::after {
+	content: "";
+	width: 44px;
+	height: 5px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.35);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+	transition: background 0.15s ease;
+}
+
+.call-overlay.dragging {
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.call-overlay.dragging .call-drag-handle {
+	cursor: grabbing;
+}
+
+.call-overlay.dragging .call-drag-handle::after {
+	background: rgba(255, 255, 255, 0.65);
 }
 
 /* ===== Video call panel ===== */
